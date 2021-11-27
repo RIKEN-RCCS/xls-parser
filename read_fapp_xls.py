@@ -3,10 +3,12 @@
 from pathlib import Path
 
 import openpyxl
-from openpyxl.cell.cell import MergedCell
+from openpyxl.cell.cell import Cell, MergedCell
 from openpyxl.formula import Tokenizer
 from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
+
+LINES = []
 
 
 def get_label(workbook: Workbook, cell_loc: str) -> str:
@@ -38,11 +40,50 @@ def get_coords_on_right(workbook: Workbook, cell_loc: str):
     return worksheet.cell(row, col).coordinate
 
 
-# # main prelude
-# filename = Path(
-#     "~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report/cpu_pa_report.xlsm"
-# ).expanduser()
-# workbook = openpyxl.load_workbook(filename)
+def cell_id_to_var(cell_id: str) -> str:
+    return cell_id.replace("!", "_")
+
+
+def parse_expr():
+    pass
+
+
+def get_cell(cell_id: str, workbook: Workbook) -> Cell:
+    pass
+
+
+def parse_cell(list) -> str:
+    pass
+
+
+def cell_to_inst(cell_id: str, workbook: Workbook):
+    cell = get_cell(cell_id, workbook)
+    cell_var = cell_id_to_var(cell_id)
+    cell_val = parse_cell(cell.tokens)
+    line = f"{cell_var} = {cell_val}"
+    LINES.append(line)
+
+
+def experiment():
+    cell_loc = "data!OR30"
+    # cell_name = cell_loc.replace("!", "_")
+    wb, loc = cell_loc.split("!")
+    cell = workbook[wb][loc]
+    tokens = Tokenizer(cell.value).items
+    # num_tokens = len(tokens)
+    # current = 0
+    # while current < num_tokens:
+    for token in tokens:
+        print(cell.value)
+        print(type(token), token.type, token.subtype, token.value)
+
+
+# main prelude
+if "workbook" not in locals():
+    filename = Path(
+        "~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report/cpu_pa_report.xlsm"
+    ).expanduser()
+    workbook = openpyxl.load_workbook(filename)
 
 
 def main():
@@ -61,36 +102,6 @@ def main():
         print()
 
     print(result)
-
-
-def cell_id_to_var(cell_id: str) -> str:
-    return cell_id.replace("!", "_")
-
-
-def parse_expr():
-    pass
-
-
-def cell_to_inst():
-    cell = get_cell(cell_id, workbook)
-    cell_var = cell_id_to_var(cell_id)
-    cell_val = parse_cell(cell.tokens)
-    line = f"{cell_var} = {cell_val}"
-    LINES.append(line)
-
-
-def experiment():
-    cell_loc = "data!OR30"
-    cell_name = cell_loc.replace("!", "_")
-    wb, loc = cell_loc.split("!")
-    cell = workbook[wb][loc]
-    tokens = Tokenizer(cell.value).items
-    num_tokens = len(tokens)
-    current = 0
-    # while current < num_tokens:
-    for token in tokens:
-        print(cell.value)
-        print(type(token), token.type, token.subtype, token.value)
 
 
 # main()
