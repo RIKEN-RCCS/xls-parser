@@ -12,8 +12,17 @@ from openpyxl.formula.tokenizer import Token
 # from openpyxl.worksheet.worksheet import Worksheet
 
 LINES = []
+PROCESSED_CELLS = set()
+WORKSHEET_STACK = []
+INFIX_OP_MAP = {"=": "=="}
+
 DEBUG = True
-DEBUG = False
+# DEBUG = False
+
+
+def dbg_print(msg: str) -> None:
+    if DEBUG:
+        print(msg)
 
 
 def get_label(cell_loc: str) -> str:
@@ -50,14 +59,21 @@ def cell_id_to_var(cell_id: str) -> str:
 
 
 def get_cell(cell_id: str) -> Cell:
+    dbg_print(f"BEGIN GET_CELL({cell_id})")
+    if "!" not in cell_id:
+        cell_id = WORKSHEET_STACK[-1] + "!" + cell_id
     ws, cell = cell_id.split("!")
     cell = WORKBOOK[ws][cell]
     if isinstance(cell, MergedCell):
         print("WARNING: MergedCell!")
+    dbg_print(f"END GET_CELL -> cell")
     return cell
 
 
 def get_raw(cell_id: str) -> Optional[str]:
+    dbg_print(f"BEGIN GET_RAW({cell_id})")
+    if "!" not in cell_id:
+        cell_id = WORKSHEET_STACK[-1] + "!" + cell_id
     ws, cell = cell_id.split("!")
     if ws == "label":
         value = WORKBOOK[ws][cell].value
@@ -65,54 +81,103 @@ def get_raw(cell_id: str) -> Optional[str]:
     if ws == "data":
         if cell == "G4":
             return "data['measured time']"
+        if cell == "G5":
+            return "data[what_is_G5]"
+        if cell == "G10":
+            return "data[what_is_G10]"
+        if cell == "G11":
+            return "data[what_is_G11]"
+        if cell == "G12":
+            return "data[what_is_G12]"
+        if cell == "C10":
+            return "data[what_is_C10]"
     return None
 
 
+def unknown_type(token: Token) -> None:
+    msg = f"ERROR: Unknown type {token.type}"
+    raise Exception(msg)
+
+
+def unknown_subtype(token: Token) -> None:
+    msg = f"ERROR: Unknown subtype {token.subtype} (of token type {token.type})"
+    raise Exception(msg)
+
+
+def unknown_func(token: Token) -> None:
+    msg = f"ERROR: Unknown FUNC {token.value}"
+    raise Exception(msg)
+
+
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
-    if DEBUG:
-        print(f"BEGIN PARSE_TOKENS({tokens}, {cur}")
-    value = ""
+    dbg_print(f"BEGIN PARSE_TOKENS({tokens}, {cur}")
+    result = ""
     while cur < len(tokens):
         token = tokens[cur]
         if token.type == Token.OPERAND:
             if token.subtype == Token.RANGE:
                 raw = get_raw(token.value)
                 if raw:
-                    value += raw
+                    result += raw
                 else:
                     cell_to_inst(token.value)
-                    value += cell_id_to_var(token.value)
+                    result += cell_id_to_var(token.value)
+            elif token.subtype == Token.TEXT:
+                result += token.value
             else:
-                print("!!!!!!Unknown subtype", token.subtype)
+                unknown_subtype(token)
+        elif token.type == Token.FUNC:
+            if token.subtype == Token.OPEN:
+                if token.value == "IF(":
+                    partial_value, cur = parse_tokens(tokens, cur + 1)
+                    result += partial_value
+                else:
+                    unknown_func(token)
+            elif token.subtype == Token.CLOSE:
+                return "", cur + 1
+            else:
+                unknown_subtype(token)
+        elif token.type == Token.OP_IN:
+            print(
+                token.value,
+                "THIS IS INFIX OP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
+                token.subtype,
+            )
+            partial_value = token.value
+            if token.value in INFIX_OP_MAP:
+                partial_value = INFIX_OP_MAP[token.value]
+            result += partial_value
+        elif token.type == Token.SEP:
+            return "", cur + 1
         else:
-            print("!!!!!!Unknown type", token.type)
+            unknown_type(token)
         # print("tokens[cur]:", token)
         # print(token.value, token.type, token.subtype)
         cur += 1
-    if DEBUG:
-        print(f"END PARSE_TOKENS - > {value}, {cur}")
-    return value, cur
+    dbg_print(f"END PARSE_TOKENS - > {result}, {cur}")
+    return result, cur
 
 
 def parse_cell(cell: Cell) -> str:
-    if DEBUG:
-        print(f"BEGIN PARSE_CELL({cell})")
+    dbg_print(f"BEGIN PARSE_CELL({cell})")
+    WORKSHEET_STACK.append(cell.parent.title)
     tokens = Tokenizer(cell.value).items
     value, _ = parse_tokens(tokens, 0)
-    if DEBUG:
-        print(f"END PARSE_CELL -> {value}")
+    WORKSHEET_STACK.pop()
+    dbg_print(f"END PARSE_CELL -> {value}")
     return value
 
 
-def cell_to_inst(cell_id: str):
-    if DEBUG:
-        print(f"BEGIN CELL_TO_INST({cell_id})")
+def cell_to_inst(cell_id: str) -> None:
+    dbg_print(f"BEGIN CELL_TO_INST({cell_id})")
     cell = get_cell(cell_id)
     cell_var = cell_id_to_var(cell_id)
+    if cell_var in PROCESSED_CELLS:
+        return
     cell_val = parse_cell(cell)
     line = f"{cell_var} = {cell_val}"
-    if DEBUG:
-        print(f"END CELL_TO_INST: LINES.append({line})")
+    dbg_print(f"END CELL_TO_INST: LINES.append({line})")
+    PROCESSED_CELLS.add(cell_var)
     LINES.append(line)
 
 
@@ -126,26 +191,22 @@ if "WORKBOOK" not in locals():
 
 def main():
     # header_cells = ["A3", "A4", "H3", "H4", "H5", "O3"]  # , "O4"]
-    header_cells = ["A3", "B3", "O4"]
+    header_cells = ["A3", "C3"]
+    header_cells = ["A4", "C4"]
+    header_cells = ["H3", "J3"]
+    header_cells = ["H4", "J4"]
+    header_cells = ["H5", "J5"]
+    header_cells = ["O3", "Q3"]
+    # header_cells = ["O4", "Q4"]
 
-    result = dict()
     for cell_loc in header_cells:
-        # print("CELL", cell_loc)
-        # label = get_label(workbook, cell_loc)
-        # print("LABEL", label)
-        # coord = get_coords_on_right(workbook, cell_loc)
-        # print("COORD", coord)
-        # value = get_label(workbook, coord)
-        # print("VALUE", value)
-        # result[label] = value
-        # print()
         cell_id = "report!" + cell_loc
-        print(f"--- START: {cell_id} ---")
-        print("\n".join(LINES))
+        # print(f"\n--- START: {cell_id} ---")
         cell_to_inst(cell_id)
+        # print("\n".join(LINES))
 
-    print(result)
     print("\n".join(LINES))
+    assert WORKSHEET_STACK == []
 
 
 main()
