@@ -63,6 +63,22 @@ def main():
     print(result)
 
 
+def cell_id_to_var(cell_id: str) -> str:
+    return cell_id.replace("!", "_")
+
+
+def parse_expr():
+    pass
+
+
+def cell_to_inst():
+    cell = get_cell(cell_id, workbook)
+    cell_var = cell_id_to_var(cell_id)
+    cell_val = parse_cell(cell.tokens)
+    line = f"{cell_var} = {cell_val}"
+    LINES.append(line)
+
+
 def experiment():
     cell_loc = "data!OR30"
     cell_name = cell_loc.replace("!", "_")
