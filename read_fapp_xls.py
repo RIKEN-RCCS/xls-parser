@@ -113,6 +113,10 @@ def assert_sep_comma(token: Token) -> None:
     assert token.type == Token.SEP and token.value == ","
 
 
+def assert_func_close(token: Token) -> None:
+    assert token.type == Token.FUNC and token.subtype == Token.CLOSE
+
+
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
     dbg_print(f"BEGIN PARSE_TOKENS({tokens}, {cur}")
     result = ""
@@ -138,7 +142,17 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
                     true_val, cur = parse_tokens(tokens, cur + 1)
                     assert_sep_comma(tokens[cur])
                     false_val, cur = parse_tokens(tokens, cur + 1)
+                    assert_func_close(tokens[cur])
                     result += f"({true_val}) if ({cond}) else ({false_val})"
+                elif token.value == "OR(":
+                    print(f"####### RESULT: {result}")
+                    cells, cur = parse_tokens(tokens, cur + 1)
+                    result += f"any(cells)"
+                elif token.value == "COUNT(":
+                    print(f"####### RESULT: {result}")
+                    cells, cur = parse_tokens(tokens, cur + 1)
+                    result += f"sum(1 for e in {cells} if e)"
+
                 else:
                     unknown_func(token)
             elif token.subtype == Token.CLOSE:
@@ -200,7 +214,7 @@ def main():
     header_cells = ["H4", "J4"]
     header_cells = ["H5", "J5"]
     header_cells = ["O3", "Q3"]
-    header_cells = ["O4", "Q4"]
+    # header_cells = ["O4", "Q4"]
 
     for cell_loc in header_cells:
         cell_id = "report!" + cell_loc
