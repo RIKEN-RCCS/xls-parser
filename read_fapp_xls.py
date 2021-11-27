@@ -109,6 +109,10 @@ def unknown_func(token: Token) -> None:
     raise Exception(msg)
 
 
+def assert_sep_comma(token: Token) -> None:
+    assert token.type == Token.SEP and token.value == ","
+
+
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
     dbg_print(f"BEGIN PARSE_TOKENS({tokens}, {cur}")
     result = ""
@@ -129,26 +133,25 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
         elif token.type == Token.FUNC:
             if token.subtype == Token.OPEN:
                 if token.value == "IF(":
-                    partial_value, cur = parse_tokens(tokens, cur + 1)
-                    result += partial_value
+                    cond, cur = parse_tokens(tokens, cur + 1)
+                    assert_sep_comma(tokens[cur])
+                    true_val, cur = parse_tokens(tokens, cur + 1)
+                    assert_sep_comma(tokens[cur])
+                    false_val, cur = parse_tokens(tokens, cur + 1)
+                    result += f"({true_val}) if ({cond}) else ({false_val})"
                 else:
                     unknown_func(token)
             elif token.subtype == Token.CLOSE:
-                return "", cur + 1
+                break
             else:
                 unknown_subtype(token)
         elif token.type == Token.OP_IN:
-            print(
-                token.value,
-                "THIS IS INFIX OP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!",
-                token.subtype,
-            )
-            partial_value = token.value
+            op_name = token.value
             if token.value in INFIX_OP_MAP:
-                partial_value = INFIX_OP_MAP[token.value]
-            result += partial_value
+                op_name = INFIX_OP_MAP[token.value]
+            result += op_name
         elif token.type == Token.SEP:
-            return "", cur + 1
+            break
         else:
             unknown_type(token)
         # print("tokens[cur]:", token)
@@ -197,7 +200,7 @@ def main():
     header_cells = ["H4", "J4"]
     header_cells = ["H5", "J5"]
     header_cells = ["O3", "Q3"]
-    # header_cells = ["O4", "Q4"]
+    header_cells = ["O4", "Q4"]
 
     for cell_loc in header_cells:
         cell_id = "report!" + cell_loc
