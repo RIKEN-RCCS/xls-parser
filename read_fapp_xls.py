@@ -25,6 +25,29 @@ def dbg_print(msg: str) -> None:
         print(msg)
 
 
+def unknown_type(token: Token) -> None:
+    msg = f"ERROR: Unknown type {token.type}"
+    raise Exception(msg)
+
+
+def unknown_subtype(token: Token) -> None:
+    msg = f"ERROR: Unknown subtype {token.subtype} (of token type {token.type})"
+    raise Exception(msg)
+
+
+def unknown_func(token: Token) -> None:
+    msg = f"ERROR: Unknown FUNC {token.value}"
+    raise Exception(msg)
+
+
+def assert_sep_comma(token: Token) -> None:
+    assert token.type == Token.SEP and token.value == ","
+
+
+def assert_func_close(token: Token) -> None:
+    assert token.type == Token.FUNC and token.subtype == Token.CLOSE
+
+
 def get_label(cell_loc: str) -> str:
     wb, loc = "report", cell_loc
     cell = WORKBOOK[wb][loc]
@@ -55,7 +78,15 @@ def get_coords_on_right(cell_loc: str):
 
 
 def cell_id_to_var(cell_id: str) -> str:
-    return cell_id.replace("!", "_")
+    dbg_print(f"BEGIN CELL_ID_TO_VAR({cell_id})")
+    cells = get_cell(cell_id)
+    if isinstance(cells, tuple):
+        result = ",".join([cell_id_to_var(cell_to_id(cell)) for cell in cells])
+        result = f"[{result}]"
+    else:
+        result = cell_id.replace("!", "_")
+    dbg_print(f"END CELL_ID_TO_VAR({result})")
+    return result
 
 
 def get_cell(cell_id: str) -> Cell:
@@ -66,7 +97,7 @@ def get_cell(cell_id: str) -> Cell:
     cell = WORKBOOK[ws][cell]
     if isinstance(cell, MergedCell):
         print("WARNING: MergedCell!")
-    dbg_print(f"END GET_CELL -> cell")
+    dbg_print(f"END GET_CELL -> {cell}")
     return cell
 
 
@@ -77,7 +108,7 @@ def get_raw(cell_id: str) -> Optional[str]:
     ws, cell = cell_id.split("!")
     if ws == "label":
         value = WORKBOOK[ws][cell].value
-        return f"'{cell_id_to_var(value)}'"
+        return value
     if ws == "data":
         if cell == "G4":
             return "data['measured time']"
@@ -91,30 +122,13 @@ def get_raw(cell_id: str) -> Optional[str]:
             return "data[what_is_G12]"
         if cell == "C10":
             return "data[what_is_C10]"
+        if WORKBOOK[ws][cell].col_idx >= WORKBOOK[ws]["AC30"].col_idx:
+            return f"data[{cell_to_id(cell)}]"
     return None
 
 
-def unknown_type(token: Token) -> None:
-    msg = f"ERROR: Unknown type {token.type}"
-    raise Exception(msg)
-
-
-def unknown_subtype(token: Token) -> None:
-    msg = f"ERROR: Unknown subtype {token.subtype} (of token type {token.type})"
-    raise Exception(msg)
-
-
-def unknown_func(token: Token) -> None:
-    msg = f"ERROR: Unknown FUNC {token.value}"
-    raise Exception(msg)
-
-
-def assert_sep_comma(token: Token) -> None:
-    assert token.type == Token.SEP and token.value == ","
-
-
-def assert_func_close(token: Token) -> None:
-    assert token.type == Token.FUNC and token.subtype == Token.CLOSE
+def cell_to_id(cell: Cell) -> str:
+    return cell[0].parent.title + "!" + cell[0].coordinate
 
 
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
@@ -188,14 +202,18 @@ def parse_cell(cell: Cell) -> str:
 def cell_to_inst(cell_id: str) -> None:
     dbg_print(f"BEGIN CELL_TO_INST({cell_id})")
     cell = get_cell(cell_id)
-    cell_var = cell_id_to_var(cell_id)
-    if cell_var in PROCESSED_CELLS:
-        return
-    cell_val = parse_cell(cell)
-    line = f"{cell_var} = {cell_val}"
-    dbg_print(f"END CELL_TO_INST: LINES.append({line})")
-    PROCESSED_CELLS.add(cell_var)
-    LINES.append(line)
+    if isinstance(cell, tuple):
+        for c in cell:
+            cell_to_inst(cell_to_id(c))
+    else:
+        cell_var = cell_id_to_var(cell_id)
+        if cell_var in PROCESSED_CELLS:
+            return
+        cell_val = parse_cell(cell)
+        line = f"{cell_var} = {cell_val}"
+        dbg_print(f"END CELL_TO_INST: LINES.append({line})")
+        PROCESSED_CELLS.add(cell_var)
+        LINES.append(line)
 
 
 # main prelude
@@ -214,7 +232,7 @@ def main():
     header_cells = ["H4", "J4"]
     header_cells = ["H5", "J5"]
     header_cells = ["O3", "Q3"]
-    # header_cells = ["O4", "Q4"]
+    header_cells = ["O4", "Q4"]
 
     for cell_loc in header_cells:
         cell_id = "report!" + cell_loc
