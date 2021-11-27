@@ -64,20 +64,6 @@ def cell_to_inst(cell_id: str, workbook: Workbook):
     LINES.append(line)
 
 
-def experiment():
-    cell_loc = "data!OR30"
-    # cell_name = cell_loc.replace("!", "_")
-    wb, loc = cell_loc.split("!")
-    cell = workbook[wb][loc]
-    tokens = Tokenizer(cell.value).items
-    # num_tokens = len(tokens)
-    # current = 0
-    # while current < num_tokens:
-    for token in tokens:
-        print(cell.value)
-        print(type(token), token.type, token.subtype, token.value)
-
-
 # main prelude
 if "workbook" not in locals():
     filename = Path(
@@ -104,5 +90,4 @@ def main():
     print(result)
 
 
-# main()
-experiment()
+main()
