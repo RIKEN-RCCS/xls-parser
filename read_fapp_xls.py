@@ -126,52 +126,66 @@ def python_cmd_to_read_xml(cell_id: str) -> Optional[str]:
     return result
 
 
+def parse_operand(token: Token) -> str:
+    if token.subtype == Token.RANGE:
+        cell_id = full_cell_id(token.value)
+        raw = python_cmd_to_read_xml(cell_id)
+        if raw:
+            result = raw
+        else:
+            cell_to_inst(cell_id)
+            result = cell_id_to_varname(cell_id)
+    elif token.subtype == Token.TEXT:
+        result = token.value
+    elif token.subtype == Token.NUMBER:
+        result = token.value
+    else:
+        unknown_subtype_exception(token)
+    return result
+
+
+def parse_func(tokens: list[Token], cur: int):
+    if tokens[cur].subtype == Token.OPEN:
+        if tokens[cur].value == "IF(":
+            cond, cur = parse_tokens(tokens, cur + 1)
+            assert_sep_comma(tokens[cur])
+            true_val, cur = parse_tokens(tokens, cur + 1)
+            assert_sep_comma(tokens[cur])
+            false_val, cur = parse_tokens(tokens, cur + 1)
+            assert_func_close(tokens[cur])
+            result = f"({true_val}) if ({cond}) else ({false_val})"
+        elif tokens[cur].value == "OR(":
+            ops, cur = parse_tokens(tokens, cur + 1)
+            while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
+                tmp, cur = parse_tokens(tokens, cur + 1)
+                ops += f", {tmp}"
+            assert_func_close(tokens[cur])
+            result = f"(any([{ops}]))"
+        elif tokens[cur].value == "COUNT(":
+            cells, cur = parse_tokens(tokens, cur + 1)
+            assert_func_close(tokens[cur])
+            result = f"(sum(1 for e in {cells} if e !=''))"
+        else:
+            unknown_func_exception(tokens[cur])
+    elif tokens[cur].subtype == Token.CLOSE:
+        result = None
+    else:
+        unknown_subtype_exception(tokens[cur])
+    return result, cur
+
+
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
     result = ""
     while cur < len(tokens):
         token = tokens[cur]
         if token.type == Token.OPERAND:
-            if token.subtype == Token.RANGE:
-                cell_id = full_cell_id(token.value)
-                raw = python_cmd_to_read_xml(cell_id)
-                if raw:
-                    result += raw
-                else:
-                    cell_to_inst(cell_id)
-                    result += cell_id_to_varname(cell_id)
-            elif token.subtype == Token.TEXT:
-                result += token.value
-            elif token.subtype == Token.NUMBER:
-                result += token.value
-            else:
-                unknown_subtype_exception(token)
+            result += parse_operand(token)
         elif token.type == Token.FUNC:
-            if token.subtype == Token.OPEN:
-                if token.value == "IF(":
-                    cond, cur = parse_tokens(tokens, cur + 1)
-                    assert_sep_comma(tokens[cur])
-                    true_val, cur = parse_tokens(tokens, cur + 1)
-                    assert_sep_comma(tokens[cur])
-                    false_val, cur = parse_tokens(tokens, cur + 1)
-                    assert_func_close(tokens[cur])
-                    result += f"({true_val}) if ({cond}) else ({false_val})"
-                elif token.value == "OR(":
-                    ops, cur = parse_tokens(tokens, cur + 1)
-                    while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
-                        tmp, cur = parse_tokens(tokens, cur + 1)
-                        ops += f", {tmp}"
-                    assert_func_close(tokens[cur])
-                    result += f"(any([{ops}]))"
-                elif token.value == "COUNT(":
-                    cells, cur = parse_tokens(tokens, cur + 1)
-                    assert_func_close(tokens[cur])
-                    result += f"(sum(1 for e in {cells} if e !=''))"
-                else:
-                    unknown_func_exception(token)
-            elif token.subtype == Token.CLOSE:
-                break
+            tmp, cur = parse_func(tokens, cur)
+            if tmp:
+                result += tmp
             else:
-                unknown_subtype_exception(token)
+                break
         elif token.type == Token.OP_IN:
             op_name = token.value
             if token.value in INFIX_OP_MAP:
