@@ -43,7 +43,6 @@ DEBUG = False
 
 
 def event_cell(cell_id):
-    dbg_print(f"== BEGIN EVENT_CELL({cell_id})")
     cell = get_cell(cell_id)
     col = cell.col_idx
     row = cell.row
@@ -53,7 +52,6 @@ def event_cell(cell_id):
         and TOP_ROW <= row
         and row <= BOTOM_ROW
     )
-    dbg_print(f"== END EVENT_CELL -> {result}")
     return result
 
 
@@ -69,27 +67,18 @@ def cell_to_id(cell: Cell) -> str:
 
 
 def cell_id_to_var(cell_id: str) -> str:
-    dbg_print(f"BEGIN CELL_ID_TO_VAR({cell_id})")
     cells = get_cell(cell_id)
     result = cell_id.replace("!", "_").replace("$", "")
-    dbg_print(f"END CELL_ID_TO_VAR -> {result}")
     return result
 
 
 def get_cell(cell_id: str) -> Cell:
-    dbg_print(f"BEGIN GET_CELL({cell_id})")
     cell_id = full_cell_id(cell_id)
     ws, cell = cell_id.split("!")
     cell = WORKBOOK[ws][cell]
     if isinstance(cell, MergedCell):
         print("WARNING: MergedCell!")
-    dbg_print(f"END GET_CELL -> {cell}")
     return cell
-
-
-def dbg_print(msg: str) -> None:
-    if DEBUG:
-        print(msg)
 
 
 def unknown_type(token: Token) -> None:
@@ -116,7 +105,6 @@ def assert_func_close(token: Token) -> None:
 
 
 def get_raw(cell_id: str) -> Optional[str]:
-    dbg_print(f"BEGIN GET_RAW({cell_id})")
     result = None
     cell_id = cell_id.replace("$", "")
     if ":" in cell_id:
@@ -141,12 +129,10 @@ def get_raw(cell_id: str) -> Optional[str]:
                 event_name = WORKBOOK[ws][HEADER_ROW][col].value
                 thread_id = cell_obj.row - HEADER_ROW - 1
                 result = f"{FAPP_XML_OBJ}.get_event('{event_name}', {thread_id})"
-    dbg_print(f"END GET_RAW -> {result}")
     return result
 
 
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
-    dbg_print(f"BEGIN PARSE_TOKENS({tokens}, {cur}")
     result = ""
     while cur < len(tokens):
         token = tokens[cur]
@@ -202,22 +188,18 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
         else:
             unknown_type(token)
         cur += 1
-    dbg_print(f"END PARSE_TOKENS - > {result}, {cur}")
     return result, cur
 
 
 def parse_cell(cell: Cell) -> str:
-    dbg_print(f"BEGIN PARSE_CELL({cell} with value {cell.value})")
     WORKSHEET_STACK.append(cell.parent.title)
     tokens = Tokenizer(cell.value).items
     value, _ = parse_tokens(tokens, 0)
     WORKSHEET_STACK.pop()
-    dbg_print(f"END PARSE_CELL -> {value}")
     return value
 
 
 def cell_to_inst(cell_id: str) -> None:
-    dbg_print(f"BEGIN CELL_TO_INST({cell_id})")
     cell_id = full_cell_id(cell_id)
     cell = get_cell(cell_id)
     cell_var = cell_id_to_var(cell_id)
@@ -225,7 +207,6 @@ def cell_to_inst(cell_id: str) -> None:
         return
     cell_val = parse_cell(cell)
     line = f"{cell_var} = {cell_val}"
-    dbg_print(f"END CELL_TO_INST: LINES.append({line})")
     PROCESSED_CELLS.add(cell_var)
     LINES.append(line)
 
