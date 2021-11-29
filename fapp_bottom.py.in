@@ -1,3 +1,14 @@
 ### BOTTOM BEGIN ###
 pprint(result)
+gold = {
+    "CMG no.": 0,
+    "CPU frequency (GHz)": 2.1979420119099813,
+    "Measured region": ["kernel", 1],
+    "Measured time": "2021-10-28T13:51:41",
+    "Node name": "e34-7200c",
+    "Process no.": 0,
+    "Vector length (bit)": 512,
+}
+
 print("Generated program: DONE")
+assert gold == result, "Rudimentary test did not pass"
