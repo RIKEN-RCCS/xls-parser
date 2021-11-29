@@ -15,44 +15,22 @@ LINES = []
 OUTPUT_DICT = {}
 PROCESSED_CELLS = set()
 WORKSHEET_STACK = []
-INFIX_OP_MAP = {"=": "=="}
+
+FAPP_XML_OBJ = "fapp_xml"
+SPECIAL_FAPP_XML_CALL = {
+    "G4": f"{FAPP_XML_OBJ}.get_measured_time()",
+    "G5": f"{FAPP_XML_OBJ}.get_node_name()",
+    "G10": f"{FAPP_XML_OBJ}.get_process_no()",
+    "G11": f"{FAPP_XML_OBJ}.get_cmg_no()",
+    "G12": f"{FAPP_XML_OBJ}.get_measured_region()",
+    "G14": f"{FAPP_XML_OBJ}.get_vector_length()",
+}
+INFIX_OP_MAP = {
+    "=": "==",
+}
 
 DEBUG = True
 DEBUG = False
-
-
-def full_cell_id(cell_id: str, prefix="report!") -> str:
-    if "!" not in cell_id:
-        return f"{prefix}!{cell_id}"
-    return cell_id
-
-
-def dbg_print(msg: str) -> None:
-    if DEBUG:
-        print(msg)
-
-
-def unknown_type(token: Token) -> None:
-    msg = f"ERROR: Unknown type {token.type}"
-    raise Exception(msg)
-
-
-def unknown_subtype(token: Token) -> None:
-    msg = f"ERROR: Unknown subtype {token.subtype} (of token type {token.type})"
-    raise Exception(msg)
-
-
-def unknown_func(token: Token) -> None:
-    msg = f"ERROR: Unknown FUNC {token.value}"
-    raise Exception(msg)
-
-
-def assert_sep_comma(token: Token) -> None:
-    assert token.type == Token.SEP and token.value == ","
-
-
-def assert_func_close(token: Token) -> None:
-    assert token.type == Token.FUNC and token.subtype == Token.CLOSE
 
 
 def get_label(cell_loc: str) -> str:
@@ -84,6 +62,19 @@ def get_coords_on_right(cell_loc: str):
     return worksheet.cell(row, col).coordinate
 
 
+# TRASH #
+
+
+def full_cell_id(cell_id: str, prefix="report") -> str:
+    if "!" not in cell_id:
+        return f"{prefix}!{cell_id}"
+    return cell_id
+
+
+def cell_to_id(cell: Cell) -> str:
+    return cell[0].parent.title + "!" + cell[0].coordinate
+
+
 def cell_id_to_var(cell_id: str) -> str:
     dbg_print(f"BEGIN CELL_ID_TO_VAR({cell_id})")
     cells = get_cell(cell_id)
@@ -108,6 +99,34 @@ def get_cell(cell_id: str) -> Cell:
     return cell
 
 
+def dbg_print(msg: str) -> None:
+    if DEBUG:
+        print(msg)
+
+
+def unknown_type(token: Token) -> None:
+    msg = f"ERROR: Unknown type {token.type}"
+    raise Exception(msg)
+
+
+def unknown_subtype(token: Token) -> None:
+    msg = f"ERROR: Unknown subtype {token.subtype} (of token type {token.type})"
+    raise Exception(msg)
+
+
+def unknown_func(token: Token) -> None:
+    msg = f"ERROR: Unknown FUNC {token.value}"
+    raise Exception(msg)
+
+
+def assert_sep_comma(token: Token) -> None:
+    assert token.type == Token.SEP and token.value == ","
+
+
+def assert_func_close(token: Token) -> None:
+    assert token.type == Token.FUNC and token.subtype == Token.CLOSE
+
+
 def get_raw(cell_id: str) -> Optional[str]:
     dbg_print(f"BEGIN GET_RAW({cell_id})")
     if "!" not in cell_id:
@@ -117,25 +136,13 @@ def get_raw(cell_id: str) -> Optional[str]:
         value = WORKBOOK[ws][cell].value
         return f"'{value}'"
     if ws == "data":
-        if cell == "G4":
-            return "fapp_xml.get_measured_time()"
-        if cell == "G5":
-            return "data[what_is_G5]"
-        if cell == "G10":
-            return "data[what_is_G10]"
-        if cell == "G11":
-            return "data[what_is_G11]"
-        if cell == "G12":
-            return "data[what_is_G12]"
+        if cell in SPECIAL_FAPP_XML_CALL:
+            return SPECIAL_FAPP_XML_CALL[cell]
         if cell == "C10":
             return "data[what_is_C10]"
         # if WORKBOOK[ws][cell].col_idx >= WORKBOOK[ws]["AC30"].col_idx:
         #     return f"data[{cell_to_id(cell)}]"
     return None
-
-
-def cell_to_id(cell: Cell) -> str:
-    return cell[0].parent.title + "!" + cell[0].coordinate
 
 
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
@@ -232,11 +239,8 @@ if "WORKBOOK" not in locals():
 
 
 def add_key_single_value_pair(key: str, value: str) -> None:
-    prefix = "report!"
-    if not key.startswith(prefix):
-        key = prefix + key
-    if not value.startswith(prefix):
-        value = prefix + value
+    key = full_cell_id(key)
+    value = full_cell_id(value)
     cell_to_inst(key)
     cell_to_inst(value)
     OUTPUT_DICT[cell_id_to_var(key)] = cell_id_to_var(value)
@@ -261,11 +265,11 @@ def create_program() -> str:
 def main():
     # header_cells = ["A3", "A4", "H3", "H4", "H5", "O3"]  # , "O4"]
     add_key_single_value_pair("A3", "C3")
-    # add_key_single_value_pair("A4", "C4")
-    # add_key_single_value_pair("H3", "J3")
-    # add_key_single_value_pair("H4", "J4")
-    # add_key_single_value_pair("H5", "J5")
-    # add_key_single_value_pair("O3", "Q3")
+    add_key_single_value_pair("A4", "C4")
+    add_key_single_value_pair("H3", "J3")
+    add_key_single_value_pair("H4", "J4")
+    add_key_single_value_pair("H5", "J5")
+    add_key_single_value_pair("O3", "Q3")
     # add_key_single_value_pair("O4", "Q4")
 
     assert WORKSHEET_STACK == []

@@ -1,5 +1,9 @@
-from fapp_loader import FappXml
+from importlib import reload
 
-fapp_xml = FappXml("~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report")
+import fapp_loader
+
+reload(fapp_loader)
+
+fapp_xml = fapp_loader.FappXml("~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report")
 
 ### TOP END ###
