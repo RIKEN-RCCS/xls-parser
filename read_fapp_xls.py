@@ -45,35 +45,16 @@ DEBUG = False
 def event_cell(cell_id):
     dbg_print(f"== BEGIN EVENT_CELL({cell_id})")
     cell = get_cell(cell_id)
-    if isinstance(cell, tuple):
-        results = [event_cell(cell_to_id(c)) for c in cell]
-        result = any(results)
-        assert result == all(results)
-    else:
-        col = cell.col_idx
-        row = cell.row
-        result = (
-            LEFT_COLUMN <= col
-            and col <= RIGHT_COLUMN
-            and TOP_ROW <= row
-            and row <= BOTOM_ROW
-        )
+    col = cell.col_idx
+    row = cell.row
+    result = (
+        LEFT_COLUMN <= col
+        and col <= RIGHT_COLUMN
+        and TOP_ROW <= row
+        and row <= BOTOM_ROW
+    )
     dbg_print(f"== END EVENT_CELL -> {result}")
     return result
-
-
-def get_coords_on_right(cell_loc: str):
-    worksheet = WORKBOOK["report"]
-    cell = worksheet[cell_loc]
-    row, col = cell.row, cell.col_idx
-
-    while not isinstance(worksheet.cell(row, col), MergedCell):
-        col += 1
-    col += 1
-    return worksheet.cell(row, col).coordinate
-
-
-# TRASH #
 
 
 def full_cell_id(cell_id: str) -> str:
@@ -90,11 +71,7 @@ def cell_to_id(cell: Cell) -> str:
 def cell_id_to_var(cell_id: str) -> str:
     dbg_print(f"BEGIN CELL_ID_TO_VAR({cell_id})")
     cells = get_cell(cell_id)
-    if isinstance(cells, tuple):
-        result = ", ".join([cell_id_to_var(cell_to_id(cell)) for cell in cells])
-        result = f"[{result}]"
-    else:
-        result = cell_id.replace("!", "_").replace("$", "")
+    result = cell_id.replace("!", "_").replace("$", "")
     dbg_print(f"END CELL_ID_TO_VAR -> {result}")
     return result
 
@@ -102,8 +79,6 @@ def cell_id_to_var(cell_id: str) -> str:
 def get_cell(cell_id: str) -> Cell:
     dbg_print(f"BEGIN GET_CELL({cell_id})")
     cell_id = full_cell_id(cell_id)
-    # if "!" not in cell_id:
-    #     cell_id = WORKSHEET_STACK[-1] + "!" + cell_id
     ws, cell = cell_id.split("!")
     cell = WORKBOOK[ws][cell]
     if isinstance(cell, MergedCell):
@@ -245,18 +220,14 @@ def cell_to_inst(cell_id: str) -> None:
     dbg_print(f"BEGIN CELL_TO_INST({cell_id})")
     cell_id = full_cell_id(cell_id)
     cell = get_cell(cell_id)
-    if isinstance(cell, tuple):
-        for c in cell:
-            cell_to_inst(cell_to_id(c))
-    else:
-        cell_var = cell_id_to_var(cell_id)
-        if cell_var in PROCESSED_CELLS:
-            return
-        cell_val = parse_cell(cell)
-        line = f"{cell_var} = {cell_val}"
-        dbg_print(f"END CELL_TO_INST: LINES.append({line})")
-        PROCESSED_CELLS.add(cell_var)
-        LINES.append(line)
+    cell_var = cell_id_to_var(cell_id)
+    if cell_var in PROCESSED_CELLS:
+        return
+    cell_val = parse_cell(cell)
+    line = f"{cell_var} = {cell_val}"
+    dbg_print(f"END CELL_TO_INST: LINES.append({line})")
+    PROCESSED_CELLS.add(cell_var)
+    LINES.append(line)
 
 
 # main prelude
