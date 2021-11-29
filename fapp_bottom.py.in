@@ -1,6 +1,6 @@
 ### BOTTOM BEGIN ###
 pprint(result)
-gold = {
+assert result == {
     "CMG no.": 0,
     "CPU frequency (GHz)": 2.1979420119099813,
     "Measured region": ["kernel", 1],
@@ -8,7 +8,5 @@ gold = {
     "Node name": "e34-7200c",
     "Process no.": 0,
     "Vector length (bit)": 512,
-}
-
+}, "Rudimentary test did not pass"
 print("Generated program: DONE")
-assert gold == result, "Rudimentary test did not pass"

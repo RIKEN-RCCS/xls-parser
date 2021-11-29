@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from pathlib import Path
-from pprint import pprint
 from typing import Optional
 
 import openpyxl
@@ -39,8 +38,8 @@ INFIX_OP_MAP = {
 }
 
 
-def event_cell(cell_id):
-    cell = get_cell(cell_id)
+def is_event_cell(cell_id: str) -> bool:
+    cell = cell_id_to_obj(cell_id)
     col = cell.col_idx
     row = cell.row
     result = (
@@ -59,16 +58,16 @@ def full_cell_id(cell_id: str) -> str:
     return cell_id
 
 
-def cell_to_id(cell: Cell) -> str:
+def cell_obj_to_id(cell: Cell) -> str:
     return cell[0].parent.title + "!" + cell[0].coordinate
 
 
-def cell_id_to_var(cell_id: str) -> str:
+def cell_id_to_varname(cell_id: str) -> str:
     result = cell_id.replace("!", "_").replace("$", "")
     return result
 
 
-def get_cell(cell_id: str) -> Cell:
+def cell_id_to_obj(cell_id: str) -> Cell:
     cell_id = full_cell_id(cell_id)
     ws, cell = cell_id.split("!")
     cell = WORKBOOK[ws][cell]
@@ -77,18 +76,18 @@ def get_cell(cell_id: str) -> Cell:
     return cell
 
 
-def unknown_type(token: Token) -> None:
+def unknown_type_exception(token: Token) -> None:
     msg = f"ERROR: Unknown type {token.type}"
     raise Exception(msg)
 
 
-def unknown_subtype(token: Token) -> None:
+def unknown_subtype_exception(token: Token) -> None:
     msg = f"ERROR: Unknown subtype {token.subtype} "
     msg += f"(of token type {token.type})"
     raise Exception(msg)
 
 
-def unknown_func(token: Token) -> None:
+def unknown_func_exception(token: Token) -> None:
     msg = f"ERROR: Unknown FUNC {token.value}"
     raise Exception(msg)
 
@@ -101,12 +100,12 @@ def assert_func_close(token: Token) -> None:
     assert token.type == Token.FUNC and token.subtype == Token.CLOSE
 
 
-def get_raw(cell_id: str) -> Optional[str]:
+def python_cmd_to_read_xml(cell_id: str) -> Optional[str]:
     result = None
     cell_id = cell_id.replace("$", "")
     if ":" in cell_id:
-        cells = get_cell(cell_id)
-        results = [get_raw(cell_to_id(cell)) for cell in cells]
+        cells = cell_id_to_obj(cell_id)
+        results = [python_cmd_to_read_xml(cell_obj_to_id(cell)) for cell in cells]
         if any(results):
             result = f"[{', '.join(results)}]"
     else:
@@ -118,7 +117,7 @@ def get_raw(cell_id: str) -> Optional[str]:
         elif ws == "data":
             if cell in SPECIAL_FAPP_XML_CALL:
                 result = SPECIAL_FAPP_XML_CALL[cell]
-            elif event_cell(cell_id):
+            elif is_event_cell(cell_id):
                 cell_obj = WORKBOOK[ws][cell]
                 col = cell_obj.col_idx - 1
                 event_name = WORKBOOK[ws][HEADER_ROW][col].value
@@ -134,18 +133,18 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
         if token.type == Token.OPERAND:
             if token.subtype == Token.RANGE:
                 cell_id = full_cell_id(token.value)
-                raw = get_raw(cell_id)
+                raw = python_cmd_to_read_xml(cell_id)
                 if raw:
                     result += raw
                 else:
                     cell_to_inst(cell_id)
-                    result += cell_id_to_var(cell_id)
+                    result += cell_id_to_varname(cell_id)
             elif token.subtype == Token.TEXT:
                 result += token.value
             elif token.subtype == Token.NUMBER:
                 result += token.value
             else:
-                unknown_subtype(token)
+                unknown_subtype_exception(token)
         elif token.type == Token.FUNC:
             if token.subtype == Token.OPEN:
                 if token.value == "IF(":
@@ -168,11 +167,11 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
                     assert_func_close(tokens[cur])
                     result += f"(sum(1 for e in {cells} if e !=''))"
                 else:
-                    unknown_func(token)
+                    unknown_func_exception(token)
             elif token.subtype == Token.CLOSE:
                 break
             else:
-                unknown_subtype(token)
+                unknown_subtype_exception(token)
         elif token.type == Token.OP_IN:
             op_name = token.value
             if token.value in INFIX_OP_MAP:
@@ -181,7 +180,7 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
         elif token.type == Token.SEP:
             break
         else:
-            unknown_type(token)
+            unknown_type_exception(token)
         cur += 1
     return result, cur
 
@@ -196,8 +195,8 @@ def parse_cell(cell: Cell) -> str:
 
 def cell_to_inst(cell_id: str) -> None:
     cell_id = full_cell_id(cell_id)
-    cell = get_cell(cell_id)
-    cell_var = cell_id_to_var(cell_id)
+    cell = cell_id_to_obj(cell_id)
+    cell_var = cell_id_to_varname(cell_id)
     if cell_var in PROCESSED_CELLS:
         return
     cell_val = parse_cell(cell)
@@ -206,36 +205,32 @@ def cell_to_inst(cell_id: str) -> None:
     LINES.append(line)
 
 
-# main prelude
-if "WORKBOOK" not in locals():
-    filename = Path(
-        "~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report/cpu_pa_report.xlsm"
-    ).expanduser()
-    WORKBOOK = openpyxl.load_workbook(filename)
-
-
 def add_key_single_value_pair(key: str, value: str) -> None:
     key = full_cell_id(key)
     value = full_cell_id(value)
     cell_to_inst(key)
     cell_to_inst(value)
-    OUTPUT_DICT[cell_id_to_var(key)] = cell_id_to_var(value)
+    OUTPUT_DICT[cell_id_to_varname(key)] = cell_id_to_varname(value)
 
 
 def create_program() -> str:
     with open("fapp_top.py.in") as top:
         result = top.readlines()
-    result += LINES
+    result += [line + "\n" for line in LINES]
 
     line = "result={"
     for key, value in OUTPUT_DICT.items():
         line += f"{key}: {value}, "
-    line += "}"
+    line += "}\n"
     result.append(line)
 
     with open("fapp_bottom.py.in") as top:
         result += top.readlines()
-    return "\n".join(result)
+
+    result = "".join(result)
+    with open("read_fapp_xls.out.py", "w") as out:
+        out.write(result)
+    return result
 
 
 def main():
@@ -251,12 +246,16 @@ def main():
 
     program = create_program()
 
-    with open("read_fapp_xmls.out.py", "w") as out:
-        out.write(program)
-
     # print(LINES)
     # print(program)
     exec(program)
 
+
+# main prelude
+if "WORKBOOK" not in locals():
+    filename = Path(
+        "~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report/cpu_pa_report.xlsm"
+    ).expanduser()
+    WORKBOOK = openpyxl.load_workbook(filename)
 
 main()
