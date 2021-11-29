@@ -33,24 +33,6 @@ DEBUG = True
 DEBUG = False
 
 
-def get_label(cell_loc: str) -> str:
-    wb, loc = "report", cell_loc
-    cell = WORKBOOK[wb][loc]
-    while cell.data_type == "f":
-        cell = cell.value
-        assert cell[0] == "="
-        tokens = Tokenizer(cell).items
-        print("TOKENS", tokens)
-        if len(tokens) == 1 and tokens[0].type == "OPERAND":
-            token = tokens[0]
-            print("YYYYY", token.value.replace("!", "_"))
-        assert "!" in cell[1:]
-        wb, loc = cell[1:].split("!")
-        cell = WORKBOOK[wb][loc]
-    print("TYPE", cell.data_type)
-    return cell.value
-
-
 def get_coords_on_right(cell_loc: str):
     worksheet = WORKBOOK["report"]
     cell = worksheet[cell_loc]
