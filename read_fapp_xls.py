@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from pathlib import Path
+from pprint import pprint
 from typing import Optional
 
 import openpyxl
@@ -18,6 +19,7 @@ WORKSHEET_STACK = []
 
 FAPP_XML_OBJ = "fapp_xml"
 SPECIAL_FAPP_XML_CALL = {
+    "C4": f"{FAPP_XML_OBJ}.get_counter_timer_freq()",
     "G4": f"{FAPP_XML_OBJ}.get_measured_time()",
     "G5": f"{FAPP_XML_OBJ}.get_node_name()",
     "G10": f"{FAPP_XML_OBJ}.get_process_no()",
@@ -25,12 +27,39 @@ SPECIAL_FAPP_XML_CALL = {
     "G12": f"{FAPP_XML_OBJ}.get_measured_region()",
     "G14": f"{FAPP_XML_OBJ}.get_vector_length()",
 }
+HEADER_ROW = 29
+TOP_ROW = 30
+BOTOM_ROW = 41
+LEFT_COLUMN = 29
+RIGHT_COLUMN = 334
+
 INFIX_OP_MAP = {
     "=": "==",
+    "^": "**",
 }
 
 DEBUG = True
 DEBUG = False
+
+
+def event_cell(cell_id):
+    dbg_print(f"== BEGIN EVENT_CELL({cell_id})")
+    cell = get_cell(cell_id)
+    if isinstance(cell, tuple):
+        results = [event_cell(cell_to_id(c)) for c in cell]
+        result = any(results)
+        assert result == all(results)
+    else:
+        col = cell.col_idx
+        row = cell.row
+        result = (
+            LEFT_COLUMN <= col
+            and col <= RIGHT_COLUMN
+            and TOP_ROW <= row
+            and row <= BOTOM_ROW
+        )
+    dbg_print(f"== END EVENT_CELL -> {result}")
+    return result
 
 
 def get_coords_on_right(cell_loc: str):
@@ -47,7 +76,8 @@ def get_coords_on_right(cell_loc: str):
 # TRASH #
 
 
-def full_cell_id(cell_id: str, prefix="report") -> str:
+def full_cell_id(cell_id: str) -> str:
+    prefix = WORKSHEET_STACK[-1] if WORKSHEET_STACK else "report"
     if "!" not in cell_id:
         return f"{prefix}!{cell_id}"
     return cell_id
@@ -61,18 +91,19 @@ def cell_id_to_var(cell_id: str) -> str:
     dbg_print(f"BEGIN CELL_ID_TO_VAR({cell_id})")
     cells = get_cell(cell_id)
     if isinstance(cells, tuple):
-        result = ",".join([cell_id_to_var(cell_to_id(cell)) for cell in cells])
+        result = ", ".join([cell_id_to_var(cell_to_id(cell)) for cell in cells])
         result = f"[{result}]"
     else:
-        result = cell_id.replace("!", "_")
-    dbg_print(f"END CELL_ID_TO_VAR({result})")
+        result = cell_id.replace("!", "_").replace("$", "")
+    dbg_print(f"END CELL_ID_TO_VAR -> {result}")
     return result
 
 
 def get_cell(cell_id: str) -> Cell:
     dbg_print(f"BEGIN GET_CELL({cell_id})")
-    if "!" not in cell_id:
-        cell_id = WORKSHEET_STACK[-1] + "!" + cell_id
+    cell_id = full_cell_id(cell_id)
+    # if "!" not in cell_id:
+    #     cell_id = WORKSHEET_STACK[-1] + "!" + cell_id
     ws, cell = cell_id.split("!")
     cell = WORKBOOK[ws][cell]
     if isinstance(cell, MergedCell):
@@ -111,20 +142,32 @@ def assert_func_close(token: Token) -> None:
 
 def get_raw(cell_id: str) -> Optional[str]:
     dbg_print(f"BEGIN GET_RAW({cell_id})")
-    if "!" not in cell_id:
-        cell_id = WORKSHEET_STACK[-1] + "!" + cell_id
-    ws, cell = cell_id.split("!")
-    if ws == "label":
-        value = WORKBOOK[ws][cell].value
-        return f"'{value}'"
-    if ws == "data":
-        if cell in SPECIAL_FAPP_XML_CALL:
-            return SPECIAL_FAPP_XML_CALL[cell]
-        if cell == "C10":
-            return "data[what_is_C10]"
-        # if WORKBOOK[ws][cell].col_idx >= WORKBOOK[ws]["AC30"].col_idx:
-        #     return f"data[{cell_to_id(cell)}]"
-    return None
+    result = None
+    cell_id = cell_id.replace("$", "")
+    if ":" in cell_id:
+        cells = get_cell(cell_id)
+        results = [get_raw(cell_to_id(cell)) for cell in cells]
+        if any(results):
+            result = f"[{', '.join(results)}]"
+    else:
+        cell_id = full_cell_id(cell_id)
+        # if "!" not in cell_id:
+        #     cell_id = WORKSHEET_STACK[-1] + "!" + cell_id
+        ws, cell = cell_id.split("!")
+        if ws == "label":
+            value = WORKBOOK[ws][cell].value
+            result = f"'{value}'"
+        elif ws == "data":
+            if cell in SPECIAL_FAPP_XML_CALL:
+                result = SPECIAL_FAPP_XML_CALL[cell]
+            elif event_cell(cell_id):
+                cell_obj = WORKBOOK[ws][cell]
+                col = cell_obj.col_idx - 1
+                event_name = WORKBOOK[ws][HEADER_ROW][col].value
+                thread_id = cell_obj.row - HEADER_ROW - 1
+                result = f"{FAPP_XML_OBJ}.get_event('{event_name}', {thread_id})"
+    dbg_print(f"END GET_RAW -> {result}")
+    return result
 
 
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
@@ -134,13 +177,16 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
         token = tokens[cur]
         if token.type == Token.OPERAND:
             if token.subtype == Token.RANGE:
-                raw = get_raw(token.value)
+                cell_id = full_cell_id(token.value)
+                raw = get_raw(cell_id)
                 if raw:
                     result += raw
                 else:
-                    cell_to_inst(token.value)
-                    result += cell_id_to_var(token.value)
+                    cell_to_inst(cell_id)
+                    result += cell_id_to_var(cell_id)
             elif token.subtype == Token.TEXT:
+                result += token.value
+            elif token.subtype == Token.NUMBER:
                 result += token.value
             else:
                 unknown_subtype(token)
@@ -155,14 +201,16 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
                     assert_func_close(tokens[cur])
                     result += f"({true_val}) if ({cond}) else ({false_val})"
                 elif token.value == "OR(":
-                    print(f"####### RESULT: {result}")
-                    cells, cur = parse_tokens(tokens, cur + 1)
-                    result += f"any(cells)"
+                    ops, cur = parse_tokens(tokens, cur + 1)
+                    while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
+                        tmp, cur = parse_tokens(tokens, cur + 1)
+                        ops += f", {tmp}"
+                    assert_func_close(tokens[cur])
+                    result += f"(any([{ops}]))"
                 elif token.value == "COUNT(":
-                    print(f"####### RESULT: {result}")
                     cells, cur = parse_tokens(tokens, cur + 1)
-                    result += f"sum(1 for e in {cells} if e)"
-
+                    assert_func_close(tokens[cur])
+                    result += f"(sum(1 for e in {cells} if e !=''))"
                 else:
                     unknown_func(token)
             elif token.subtype == Token.CLOSE:
@@ -178,15 +226,13 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
             break
         else:
             unknown_type(token)
-        # print("tokens[cur]:", token)
-        # print(token.value, token.type, token.subtype)
         cur += 1
     dbg_print(f"END PARSE_TOKENS - > {result}, {cur}")
     return result, cur
 
 
 def parse_cell(cell: Cell) -> str:
-    dbg_print(f"BEGIN PARSE_CELL({cell})")
+    dbg_print(f"BEGIN PARSE_CELL({cell} with value {cell.value})")
     WORKSHEET_STACK.append(cell.parent.title)
     tokens = Tokenizer(cell.value).items
     value, _ = parse_tokens(tokens, 0)
@@ -197,6 +243,7 @@ def parse_cell(cell: Cell) -> str:
 
 def cell_to_inst(cell_id: str) -> None:
     dbg_print(f"BEGIN CELL_TO_INST({cell_id})")
+    cell_id = full_cell_id(cell_id)
     cell = get_cell(cell_id)
     if isinstance(cell, tuple):
         for c in cell:
@@ -235,7 +282,7 @@ def create_program() -> str:
 
     line = "result={"
     for key, value in OUTPUT_DICT.items():
-        line += f"{key}: {value} ,"
+        line += f"{key}: {value}, "
     line += "}"
     result.append(line)
 
@@ -245,14 +292,13 @@ def create_program() -> str:
 
 
 def main():
-    # header_cells = ["A3", "A4", "H3", "H4", "H5", "O3"]  # , "O4"]
     add_key_single_value_pair("A3", "C3")
     add_key_single_value_pair("A4", "C4")
     add_key_single_value_pair("H3", "J3")
     add_key_single_value_pair("H4", "J4")
     add_key_single_value_pair("H5", "J5")
     add_key_single_value_pair("O3", "Q3")
-    # add_key_single_value_pair("O4", "Q4")
+    add_key_single_value_pair("O4", "Q4")
 
     assert WORKSHEET_STACK == []
 
@@ -261,7 +307,7 @@ def main():
     with open("read_fapp_xmls.out.py", "w") as out:
         out.write(program)
 
-    print(LINES)
+    # print(LINES)
     print(program)
     exec(program)
 

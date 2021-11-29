@@ -1,3 +1,3 @@
 ### BOTTOM BEGIN ###
-print(result)
-print("DONE")
+pprint(result)
+print("Generated program: DONE")

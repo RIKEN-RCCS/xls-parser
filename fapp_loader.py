@@ -6,9 +6,9 @@ from pprint import pprint
 
 class FappXml:
     def __init__(self, path: str, region_name: str = "kernel"):
+        self.region_name = region_name
         self.fill_xmls(path)
         self.fill_event_dict()
-        self.region_name = region_name
 
     def fill_xmls(self, path: str) -> None:
         pa_dir = Path(path).expanduser()
@@ -21,19 +21,21 @@ class FappXml:
 
     def fill_event_dict(self):
         self.event_dict = defaultdict(list)
-        query = "./information/region[@name='all']"
+        query = f"./information/region[@name='{self.region_name}']"
         query += "/spawn/process/thread/cpupa/event"
         for idx, xml in enumerate(self.xmls):
             for event in xml.getroot().findall(query):
                 event_name = event.get("name")
                 self.event_dict[event_name].append(idx)
 
-    def get_event(self, event_name, thread_id=0):
+    def get_event(self, event_name, thread_id):
+        assert 0 <= thread_id and thread_id < 12, "Wrong thread id"
         idx = self.event_dict[event_name][0]
         query = f"./information/region[@name='{self.region_name}']"
         query += f"/spawn/process/thread[@id='{thread_id}']"
         query += f"/cpupa/event[@name='{event_name}']"
-        return int(self.xmls[idx].find(query).text)
+        result = self.xmls[idx].find(query)
+        return int(result.text) if result is not None else ""
 
     # Single values
     def get_measured_time(self) -> str:
@@ -46,20 +48,24 @@ class FappXml:
 
     def get_process_no(self) -> str:
         query = "./environment/spawn/process"
-        return self.xmls[0].find(query).get("id")
+        return int(self.xmls[0].find(query).get("id"))
 
     def get_cmg_no(self) -> str:
         query = "./environment/spawn/process/thread/cmg"
-        return self.xmls[0].find(query).get("id")
+        return int(self.xmls[0].find(query).get("id"))
 
     def get_measured_region(self) -> str:
-        query = "./information/region"
+        query = f"./information/region[@name='{self.region_name}']"
         elem = self.xmls[0].find(query)
-        return [elem.get("name"), elem.get("id")]
+        return [elem.get("name"), int(elem.get("id"))]
 
     def get_vector_length(self) -> str:
         query = "./environment/vector_length"
-        return self.xmls[0].find(query).get("vlen")
+        return int(self.xmls[0].find(query).get("vlen"))
+
+    def get_counter_timer_freq(self) -> str:
+        query = "./environment/spawn/process/cntfrq"
+        return int(self.xmls[0].find(query).text)
 
 
 if __name__ == "__main__":
@@ -68,6 +74,6 @@ if __name__ == "__main__":
     fapp_xml = FappXml("~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report")
 
     xml = fapp_xml.xmls[0]
-    print(fapp_xml.get_event("0x80c1", "kernel"))
-    pprint(fapp_xml.event_dict)
+    print(fapp_xml.get_event("0x80c0", 0))
+    # pprint(fapp_xml.event_dict)
     print("--- end ---")
