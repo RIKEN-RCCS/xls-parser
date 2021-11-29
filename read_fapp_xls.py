@@ -38,9 +38,6 @@ INFIX_OP_MAP = {
     "^": "**",
 }
 
-DEBUG = True
-DEBUG = False
-
 
 def event_cell(cell_id):
     cell = get_cell(cell_id)
@@ -67,7 +64,6 @@ def cell_to_id(cell: Cell) -> str:
 
 
 def cell_id_to_var(cell_id: str) -> str:
-    cells = get_cell(cell_id)
     result = cell_id.replace("!", "_").replace("$", "")
     return result
 
@@ -87,7 +83,8 @@ def unknown_type(token: Token) -> None:
 
 
 def unknown_subtype(token: Token) -> None:
-    msg = f"ERROR: Unknown subtype {token.subtype} (of token type {token.type})"
+    msg = f"ERROR: Unknown subtype {token.subtype} "
+    msg += f"(of token type {token.type})"
     raise Exception(msg)
 
 
@@ -114,8 +111,6 @@ def get_raw(cell_id: str) -> Optional[str]:
             result = f"[{', '.join(results)}]"
     else:
         cell_id = full_cell_id(cell_id)
-        # if "!" not in cell_id:
-        #     cell_id = WORKSHEET_STACK[-1] + "!" + cell_id
         ws, cell = cell_id.split("!")
         if ws == "label":
             value = WORKBOOK[ws][cell].value
@@ -260,7 +255,7 @@ def main():
         out.write(program)
 
     # print(LINES)
-    print(program)
+    # print(program)
     exec(program)
 
 
