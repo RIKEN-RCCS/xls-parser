@@ -12,12 +12,19 @@ from openpyxl.formula.tokenizer import Token
 # from openpyxl.worksheet.worksheet import Worksheet
 
 LINES = []
+OUTPUT_DICT = {}
 PROCESSED_CELLS = set()
 WORKSHEET_STACK = []
 INFIX_OP_MAP = {"=": "=="}
 
 DEBUG = True
-# DEBUG = False
+DEBUG = False
+
+
+def full_cell_id(cell_id: str, prefix="report!") -> str:
+    if "!" not in cell_id:
+        return f"{prefix}!{cell_id}"
+    return cell_id
 
 
 def dbg_print(msg: str) -> None:
@@ -108,10 +115,10 @@ def get_raw(cell_id: str) -> Optional[str]:
     ws, cell = cell_id.split("!")
     if ws == "label":
         value = WORKBOOK[ws][cell].value
-        return value
+        return f"'{value}'"
     if ws == "data":
         if cell == "G4":
-            return "data['measured time']"
+            return "fapp_xml.get_measured_time()"
         if cell == "G5":
             return "data[what_is_G5]"
         if cell == "G10":
@@ -122,8 +129,8 @@ def get_raw(cell_id: str) -> Optional[str]:
             return "data[what_is_G12]"
         if cell == "C10":
             return "data[what_is_C10]"
-        if WORKBOOK[ws][cell].col_idx >= WORKBOOK[ws]["AC30"].col_idx:
-            return f"data[{cell_to_id(cell)}]"
+        # if WORKBOOK[ws][cell].col_idx >= WORKBOOK[ws]["AC30"].col_idx:
+        #     return f"data[{cell_to_id(cell)}]"
     return None
 
 
@@ -224,24 +231,53 @@ if "WORKBOOK" not in locals():
     WORKBOOK = openpyxl.load_workbook(filename)
 
 
+def add_key_single_value_pair(key: str, value: str) -> None:
+    prefix = "report!"
+    if not key.startswith(prefix):
+        key = prefix + key
+    if not value.startswith(prefix):
+        value = prefix + value
+    cell_to_inst(key)
+    cell_to_inst(value)
+    OUTPUT_DICT[cell_id_to_var(key)] = cell_id_to_var(value)
+
+
+def create_program() -> str:
+    with open("fapp_top.py.in") as top:
+        result = top.readlines()
+    result += LINES
+
+    line = "result={"
+    for key, value in OUTPUT_DICT.items():
+        line += f"{key}: {value} ,"
+    line += "}"
+    result.append(line)
+
+    with open("fapp_bottom.py.in") as top:
+        result += top.readlines()
+    return "\n".join(result)
+
+
 def main():
     # header_cells = ["A3", "A4", "H3", "H4", "H5", "O3"]  # , "O4"]
-    header_cells = ["A3", "C3"]
-    header_cells = ["A4", "C4"]
-    header_cells = ["H3", "J3"]
-    header_cells = ["H4", "J4"]
-    header_cells = ["H5", "J5"]
-    header_cells = ["O3", "Q3"]
-    header_cells = ["O4", "Q4"]
+    add_key_single_value_pair("A3", "C3")
+    # add_key_single_value_pair("A4", "C4")
+    # add_key_single_value_pair("H3", "J3")
+    # add_key_single_value_pair("H4", "J4")
+    # add_key_single_value_pair("H5", "J5")
+    # add_key_single_value_pair("O3", "Q3")
+    # add_key_single_value_pair("O4", "Q4")
 
-    for cell_loc in header_cells:
-        cell_id = "report!" + cell_loc
-        # print(f"\n--- START: {cell_id} ---")
-        cell_to_inst(cell_id)
-        # print("\n".join(LINES))
-
-    print("\n".join(LINES))
     assert WORKSHEET_STACK == []
+
+    program = create_program()
+
+    with open("read_fapp_xmls.out.py", "w") as out:
+        out.write(program)
+
+    print(LINES)
+    print(program)
+    exec(program)
 
 
 main()

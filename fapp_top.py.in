@@ -1,0 +1,5 @@
+from fapp_loader import FappXml
+
+fapp_xml = FappXml("~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report")
+
+### TOP END ###
