@@ -204,21 +204,16 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
     return result, cur
 
 
-def parse_cell(cell_id: str) -> str:
-    cell = cell_id_to_obj(cell_id)
-    WORKSHEET_STACK.append(cell.parent.title)
-    tokens = Tokenizer(cell.value).items
-    value, _ = parse_tokens(tokens, 0)
-    WORKSHEET_STACK.pop()
-    return value
-
-
 def cell_to_inst(cell_id: str) -> None:
     cell_id = full_cell_id(cell_id)
     cell_var = cell_id_to_varname(cell_id)
     if cell_var in PROCESSED_CELLS:
         return
-    cell_val = parse_cell(cell_id)
+    cell = cell_id_to_obj(cell_id)
+    WORKSHEET_STACK.append(cell.parent.title)
+    tokens = Tokenizer(cell.value).items
+    cell_val, _ = parse_tokens(tokens, 0)
+    WORKSHEET_STACK.pop()
     line = f"{cell_var} = {cell_val}"
     PROCESSED_CELLS.add(cell_var)
     LINES.append(line)
