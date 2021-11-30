@@ -193,9 +193,7 @@ def parse_func(tokens: list[Token], cur: int):
         elif tokens[cur].value == "AVERAGE(":
             terms, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
-            result = (
-                f"(sum(map(lambda t: int(t) if t != '' else 0, {terms}))/len({terms}))"
-            )
+            result = f"(sum(map(lambda t: float(t) if t != '' else 0, {terms}))/len([e for e in {terms} if e != '']))"
         elif tokens[cur].value == "INDEX(":
             print(tokens[cur:])
             result = ""
