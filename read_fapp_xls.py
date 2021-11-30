@@ -105,7 +105,8 @@ def python_cmd_to_read_xml(cell_id: str) -> Optional[str]:
     cell_id = cell_id.replace("$", "")
     if ":" in cell_id:
         cells = cell_id_to_obj(cell_id)
-        results = [python_cmd_to_read_xml(cell_obj_to_id(cell)) for cell in cells]
+        cell_ids = [cell_obj_to_id(cell) for cell in cells]
+        results = [python_cmd_to_read_xml(cell_id) for cell_id in cell_ids]
         if any(results):
             result = f"[{', '.join(results)}]"
     else:
@@ -174,6 +175,13 @@ def parse_func(tokens: list[Token], cur: int):
     return result, cur
 
 
+def parse_infix_op(token: Token) -> str:
+    op_name = token.value
+    if token.value in INFIX_OP_MAP:
+        op_name = INFIX_OP_MAP[token.value]
+    return op_name
+
+
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
     result = ""
     while cur < len(tokens):
@@ -187,10 +195,7 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
             else:
                 break
         elif token.type == Token.OP_IN:
-            op_name = token.value
-            if token.value in INFIX_OP_MAP:
-                op_name = INFIX_OP_MAP[token.value]
-            result += op_name
+            result += parse_infix_op(token)
         elif token.type == Token.SEP:
             break
         else:
