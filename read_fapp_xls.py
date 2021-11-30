@@ -11,6 +11,7 @@ from openpyxl.formula.tokenizer import Token
 # from openpyxl.workbook.workbook import Workbook
 # from openpyxl.worksheet.worksheet import Worksheet
 
+
 LINES = []
 OUTPUT_DICT = {}
 PROCESSED_CELLS = set()
@@ -26,6 +27,7 @@ SPECIAL_FAPP_XML_CALL = {
     "G12": f"{FAPP_XML_OBJ}.get_measured_region()",
     "G14": f"{FAPP_XML_OBJ}.get_vector_length()",
 }
+
 HEADER_ROW = 29
 TOP_ROW = 30
 BOTOM_ROW = 41
@@ -51,28 +53,45 @@ def is_event_cell(cell_id: str) -> bool:
     return result
 
 
+def dbgp(msg):
+    print(msg)
+
+
 def full_cell_id(cell_id: str) -> str:
+    dbgp(f"> full_cell_id({cell_id})")
     prefix = WORKSHEET_STACK[-1] if WORKSHEET_STACK else "report"
     if "!" not in cell_id:
         return f"{prefix}!{cell_id}"
+    dbgp(f"< full_cell_id -> {cell_id}")
     return cell_id
 
 
 def cell_obj_to_id(cell: Cell) -> str:
-    return cell[0].parent.title + "!" + cell[0].coordinate
+    return cell.parent.title + "!" + cell.coordinate
 
 
 def cell_id_to_varname(cell_id: str) -> str:
-    result = cell_id.replace("!", "_").replace("$", "")
+    dbgp(f"> cell_id_to_varname({cell_id})")
+    if ":" in cell_id:
+        cells = cell_id_to_obj(cell_id)
+        cell_ids = [cell_obj_to_id(cell[0]) for cell in cells]
+        cell_vars = [cell_id_to_varname(cell_id) for cell_id in cell_ids]
+        result = f"[{', '.join(cell_vars)}]"
+    else:
+        cell_id = full_cell_id(cell_id)
+        result = cell_id.replace("!", "_").replace("$", "")
+    dbgp(f"< cell_id_to_varname -> {result}")
     return result
 
 
 def cell_id_to_obj(cell_id: str) -> Cell:
+    dbgp(f"> cell_id_to_obj({cell_id})")
     cell_id = full_cell_id(cell_id)
     ws, cell = cell_id.split("!")
     cell = WORKBOOK[ws][cell]
     if isinstance(cell, MergedCell):
         print("WARNING: MergedCell!")
+    dbgp(f"< cell_id_to_obj -> {cell}")
     return cell
 
 
@@ -101,11 +120,12 @@ def assert_func_close(token: Token) -> None:
 
 
 def python_cmd_to_read_xml(cell_id: str) -> Optional[str]:
+    dbgp(f"> python_cmd_to_read_xml({cell_id})")
     result = None
     cell_id = cell_id.replace("$", "")
     if ":" in cell_id:
         cells = cell_id_to_obj(cell_id)
-        cell_ids = [cell_obj_to_id(cell) for cell in cells]
+        cell_ids = [cell_obj_to_id(cell[0]) for cell in cells]
         results = [python_cmd_to_read_xml(cell_id) for cell_id in cell_ids]
         if any(results):
             result = f"[{', '.join(results)}]"
@@ -124,10 +144,12 @@ def python_cmd_to_read_xml(cell_id: str) -> Optional[str]:
                 event_name = WORKBOOK[ws][HEADER_ROW][col].value
                 thread_id = cell_obj.row - HEADER_ROW - 1
                 result = f"{FAPP_XML_OBJ}.get_event('{event_name}', {thread_id})"
+    dbgp(f"< python_cmd_to_read_xml -> {result}")
     return result
 
 
 def parse_operand(token: Token) -> str:
+    dbgp(f"> parse_operand({token})")
     if token.subtype == Token.RANGE:
         cell_id = full_cell_id(token.value)
         raw = python_cmd_to_read_xml(cell_id)
@@ -142,10 +164,12 @@ def parse_operand(token: Token) -> str:
         result = token.value
     else:
         unknown_subtype_exception(token)
+    dbgp(f"< parse_operand -> {result}")
     return result
 
 
 def parse_func(tokens: list[Token], cur: int):
+    dbgp(f"> parse_func({tokens} {cur} = {tokens[cur]})")
     if tokens[cur].subtype == Token.OPEN:
         if tokens[cur].value == "IF(":
             cond, cur = parse_tokens(tokens, cur + 1)
@@ -166,23 +190,36 @@ def parse_func(tokens: list[Token], cur: int):
             cells, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
             result = f"(sum(1 for e in {cells} if e !=''))"
+        elif tokens[cur].value == "AVERAGE(":
+            terms, cur = parse_tokens(tokens, cur + 1)
+            assert_func_close(tokens[cur])
+            result = (
+                f"(sum(map(lambda t: int(t) if t != '' else 0, {terms}))/len({terms}))"
+            )
+        elif tokens[cur].value == "INDEX(":
+            print(tokens[cur:])
+            result = ""
         else:
             unknown_func_exception(tokens[cur])
     elif tokens[cur].subtype == Token.CLOSE:
         result = None
     else:
         unknown_subtype_exception(tokens[cur])
+    dbgp(f"< parse_func -> {result, cur}")
     return result, cur
 
 
 def parse_infix_op(token: Token) -> str:
+    dbgp(f"> parse_infix_op({token})")
     op_name = token.value
     if token.value in INFIX_OP_MAP:
         op_name = INFIX_OP_MAP[token.value]
+    dbgp(f"< parse_infix_op -> {op_name}")
     return op_name
 
 
 def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
+    dbgp(f"> parse_tokens({tokens}, {cur} = {tokens[cur]})")
     result = ""
     while cur < len(tokens):
         token = tokens[cur]
@@ -201,30 +238,52 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
         else:
             unknown_type_exception(token)
         cur += 1
+    dbgp(f"< parse_tokens -> {result, cur}")
     return result, cur
 
 
 def cell_to_inst(cell_id: str) -> None:
+    dbgp(f"> cell_to_inst({cell_id})")
     cell_id = full_cell_id(cell_id)
-    cell_var = cell_id_to_varname(cell_id)
-    if cell_var in PROCESSED_CELLS:
-        return
     cell = cell_id_to_obj(cell_id)
-    WORKSHEET_STACK.append(cell.parent.title)
-    tokens = Tokenizer(cell.value).items
-    cell_val, _ = parse_tokens(tokens, 0)
-    WORKSHEET_STACK.pop()
-    line = f"{cell_var} = {cell_val}"
-    PROCESSED_CELLS.add(cell_var)
-    LINES.append(line)
+    if isinstance(cell, tuple):
+        for c in cell:
+            cell_to_inst(cell_obj_to_id(c[0]))
+    else:
+        cell_var = cell_id_to_varname(cell_id)
+        if cell_var in PROCESSED_CELLS:
+            return
+        WORKSHEET_STACK.append(cell.parent.title)
+        tokens = Tokenizer(cell.value).items
+        cell_val, _ = parse_tokens(tokens, 0)
+        WORKSHEET_STACK.pop()
+        line = f"{cell_var} = {cell_val}"
+        PROCESSED_CELLS.add(cell_var)
+        LINES.append(line)
+        dbgp(f"< cell_to_inst -> APPEND: {line}")
 
 
 def add_key_single_value_pair(key: str, value: str) -> None:
-    key = full_cell_id(key)
-    value = full_cell_id(value)
     cell_to_inst(key)
     cell_to_inst(value)
     OUTPUT_DICT[cell_id_to_varname(key)] = cell_id_to_varname(value)
+
+
+def add_column_of_1_12_1(key: str, first: str):
+    first_cell = cell_id_to_obj(first)
+    row = first_cell.row
+    col = first_cell.col_idx - 1
+    num_rows = 12
+    for offset in range(num_rows):
+        cell = WORKBOOK["report"][row + offset][col]
+        cell_id = cell_obj_to_id(cell)
+        cell_to_inst(cell_id)
+        OUTPUT_DICT[key] = cell_id_to_varname(cell_id)
+
+    cell = WORKBOOK["report"][row + num_rows][col]
+    cell_id = cell_obj_to_id(cell)
+    cell_to_inst(cell_id)
+    OUTPUT_DICT[key] = cell_id_to_varname(cell_id)
 
 
 def create_program() -> str:
@@ -234,7 +293,7 @@ def create_program() -> str:
 
     line = "result={"
     for key, value in OUTPUT_DICT.items():
-        line += f"{key}: {value}, "
+        line += f"'{key}': {value}, "
     line += "}\n"
     result.append(line)
 
@@ -248,14 +307,15 @@ def create_program() -> str:
 
 
 def main():
-    add_key_single_value_pair("A3", "C3")
-    add_key_single_value_pair("A4", "C4")
-    add_key_single_value_pair("H3", "J3")
-    add_key_single_value_pair("H4", "J4")
-    add_key_single_value_pair("H5", "J5")
-    add_key_single_value_pair("O3", "Q3")
-    add_key_single_value_pair("O4", "Q4")
+    # add_key_single_value_pair("A3", "C3")
+    # add_key_single_value_pair("A4", "C4")
+    # add_key_single_value_pair("H3", "J3")
+    # add_key_single_value_pair("H4", "J4")
+    # add_key_single_value_pair("H5", "J5")
+    # add_key_single_value_pair("O3", "Q3")
+    # add_key_single_value_pair("O4", "Q4")
 
+    add_column_of_1_12_1("C8", "C14")
     assert WORKSHEET_STACK == []
 
     program = create_program()
@@ -271,5 +331,4 @@ if "WORKBOOK" not in locals():
         "~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report/cpu_pa_report.xlsm"
     ).expanduser()
     WORKBOOK = openpyxl.load_workbook(filename)
-
 main()
