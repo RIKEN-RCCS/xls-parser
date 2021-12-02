@@ -184,7 +184,8 @@ def parse_func(tokens: list[Token], cur: int):
             ops, cur = parse_tokens(tokens, cur + 1)
             while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
                 tmp, cur = parse_tokens(tokens, cur + 1)
-                ops += f", {tmp}"
+                if tmp != "":
+                    ops += f", {tmp}"
             assert_func_close(tokens[cur])
             result = f"(any([{ops}]))"
         elif tokens[cur].value == "COUNT(":
@@ -194,7 +195,7 @@ def parse_func(tokens: list[Token], cur: int):
         elif tokens[cur].value == "SUM(":
             terms, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
-            result = f"(xls_sum({terms})"
+            result = f"(xls_sum({terms}))"
         elif tokens[cur].value == "AVERAGE(":
             terms, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
@@ -313,16 +314,16 @@ def add_column_of_1_12_1(key: str, first: str, num_rows: int = 12):
 
 
 def main():
-    add_key_single_value_pair("A3", "C3")
-    add_key_single_value_pair("A4", "C4")
-    add_key_single_value_pair("H3", "J3")
-    add_key_single_value_pair("H4", "J4")
-    add_key_single_value_pair("H5", "J5")
-    add_key_single_value_pair("O3", "Q3")
-    add_key_single_value_pair("O4", "Q4")
+    # add_key_single_value_pair("A3", "C3")
+    # add_key_single_value_pair("A4", "C4")
+    # add_key_single_value_pair("H3", "J3")
+    # add_key_single_value_pair("H4", "J4")
+    # add_key_single_value_pair("H5", "J5")
+    # add_key_single_value_pair("O3", "Q3")
+    # add_key_single_value_pair("O4", "Q4")
 
-    add_column_of_1_12_1("BLA", "C14")
-    # add_column_of_1_12_1("foo", "D14")
+    # add_column_of_1_12_1("BLA", "C14")
+    add_column_of_1_12_1("foo", "D14")
     assert WORKSHEET_STACK == []
 
     program = create_program()
