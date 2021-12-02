@@ -304,7 +304,7 @@ def add_column_of_1_12_1(key: str, first: str, num_rows: int = 12):
 
     total_id = cell_obj_to_id(WORKBOOK["report"][row + num_rows][col])
     cell_to_inst(total_id)
-    total_var = cell_id_to_varname(cell_id)
+    total_var = cell_id_to_varname(total_id)
 
     value = f"[e for e in [{', '.join(cell_varnames)}] if e != '']"
     OUTPUT_DICT[key] = value
