@@ -3,6 +3,15 @@ from pprint import pprint
 
 import fapp_loader
 
+
+def xls_nonempty(ops: list):
+    return [e for e in ops if e != ""]
+
+
+def xls_sum(ops: list):
+    return sum(map(lambda t: float(t) if t != "" else 0, ops))
+
+
 reload(fapp_loader)
 
 fapp_xml = fapp_loader.FappXml("~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report")

@@ -25,7 +25,7 @@ SPECIAL_FAPP_XML_CALL = {
     "G10": f"{FAPP_XML_OBJ}.get_process_no()",
     "G11": f"{FAPP_XML_OBJ}.get_cmg_no()",
     "G12": f"{FAPP_XML_OBJ}.get_measured_region()",
-    "G14": f"{FAPP_XML_OBJ}.get_vector_length()",
+    "C10": f"{FAPP_XML_OBJ}.get_vector_length()",
 }
 
 HEADER_ROW = 29
@@ -40,6 +40,11 @@ INFIX_OP_MAP = {
 }
 
 
+def dbgp(msg):
+    # return
+    print(msg)
+
+
 def is_event_cell(cell_id: str) -> bool:
     cell = cell_id_to_obj(cell_id)
     col = cell.col_idx
@@ -51,10 +56,6 @@ def is_event_cell(cell_id: str) -> bool:
         and row <= BOTOM_ROW
     )
     return result
-
-
-def dbgp(msg):
-    print(msg)
 
 
 def full_cell_id(cell_id: str) -> str:
@@ -190,10 +191,14 @@ def parse_func(tokens: list[Token], cur: int):
             cells, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
             result = f"(sum(1 for e in {cells} if e !=''))"
+        elif tokens[cur].value == "SUM(":
+            terms, cur = parse_tokens(tokens, cur + 1)
+            assert_func_close(tokens[cur])
+            result = f"(xls_sum({terms})"
         elif tokens[cur].value == "AVERAGE(":
             terms, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
-            result = f"(sum(map(lambda t: float(t) if t != '' else 0, {terms}))/len([e for e in {terms} if e != '']))"
+            result = f"(xls_sum({terms}) / len(xls_nonempty({terms})))"
         elif tokens[cur].value == "INDEX(":
             print(tokens[cur:])
             result = ""
@@ -261,29 +266,6 @@ def cell_to_inst(cell_id: str) -> None:
         dbgp(f"< cell_to_inst -> APPEND: {line}")
 
 
-def add_key_single_value_pair(key: str, value: str) -> None:
-    cell_to_inst(key)
-    cell_to_inst(value)
-    OUTPUT_DICT[cell_id_to_varname(key)] = cell_id_to_varname(value)
-
-
-def add_column_of_1_12_1(key: str, first: str):
-    first_cell = cell_id_to_obj(first)
-    row = first_cell.row
-    col = first_cell.col_idx - 1
-    num_rows = 12
-    for offset in range(num_rows):
-        cell = WORKBOOK["report"][row + offset][col]
-        cell_id = cell_obj_to_id(cell)
-        cell_to_inst(cell_id)
-        OUTPUT_DICT[key] = cell_id_to_varname(cell_id)
-
-    cell = WORKBOOK["report"][row + num_rows][col]
-    cell_id = cell_obj_to_id(cell)
-    cell_to_inst(cell_id)
-    OUTPUT_DICT[key] = cell_id_to_varname(cell_id)
-
-
 def create_program() -> str:
     with open("fapp_top.py.in") as top:
         result = top.readlines()
@@ -304,16 +286,43 @@ def create_program() -> str:
     return result
 
 
-def main():
-    # add_key_single_value_pair("A3", "C3")
-    # add_key_single_value_pair("A4", "C4")
-    # add_key_single_value_pair("H3", "J3")
-    # add_key_single_value_pair("H4", "J4")
-    # add_key_single_value_pair("H5", "J5")
-    # add_key_single_value_pair("O3", "Q3")
-    # add_key_single_value_pair("O4", "Q4")
+def add_key_single_value_pair(key: str, value: str) -> None:
+    cell_to_inst(key)
+    cell_to_inst(value)
+    OUTPUT_DICT[cell_id_to_varname(key)] = cell_id_to_varname(value)
 
-    add_column_of_1_12_1("C8", "C14")
+
+def add_column_of_1_12_1(key: str, first: str, num_rows: int = 12):
+    first_cell = cell_id_to_obj(first)
+    row = first_cell.row
+    col = first_cell.col_idx - 1
+    cell_varnames = []
+    for offset in range(num_rows):
+        cell_id = cell_obj_to_id(WORKBOOK["report"][row + offset][col])
+        cell_to_inst(cell_id)
+        cell_varnames.append(cell_id_to_varname(cell_id))
+
+    total_id = cell_obj_to_id(WORKBOOK["report"][row + num_rows][col])
+    cell_to_inst(total_id)
+    total_var = cell_id_to_varname(cell_id)
+
+    value = f"[e for e in [{', '.join(cell_varnames)}] if e != '']"
+    OUTPUT_DICT[key] = value
+    print(total_var)
+    OUTPUT_DICT[f"{key}_total"] = total_var
+
+
+def main():
+    add_key_single_value_pair("A3", "C3")
+    add_key_single_value_pair("A4", "C4")
+    add_key_single_value_pair("H3", "J3")
+    add_key_single_value_pair("H4", "J4")
+    add_key_single_value_pair("H5", "J5")
+    add_key_single_value_pair("O3", "Q3")
+    add_key_single_value_pair("O4", "Q4")
+
+    add_column_of_1_12_1("BLA", "C14")
+    # add_column_of_1_12_1("foo", "D14")
     assert WORKSHEET_STACK == []
 
     program = create_program()
