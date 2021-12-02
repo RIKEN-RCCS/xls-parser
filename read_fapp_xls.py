@@ -27,6 +27,7 @@ SPECIAL_FAPP_XML_CALL = {
     "G12": f"{FAPP_XML_OBJ}.get_measured_region()",
     "C10": f"{FAPP_XML_OBJ}.get_vector_length()",
 }
+DATA_VALUES = {"C17", "C16"}
 
 HEADER_ROW = 29
 TOP_ROW = 30
@@ -139,6 +140,8 @@ def python_cmd_to_read_xml(cell_id: str) -> Optional[str]:
         elif ws == "data":
             if cell in SPECIAL_FAPP_XML_CALL:
                 result = SPECIAL_FAPP_XML_CALL[cell]
+            elif cell in DATA_VALUES:
+                result = str(WORKBOOK["data"][cell].value)
             elif is_event_cell(cell_id):
                 cell_obj = WORKBOOK[ws][cell]
                 col = cell_obj.col_idx - 1
@@ -237,6 +240,8 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
                 break
         elif token.type == Token.OP_IN:
             result += parse_infix_op(token)
+        elif token.type == Token.PAREN:
+            result += token.value
         elif token.type == Token.SEP:
             break
         else:
@@ -267,6 +272,11 @@ def cell_to_inst(cell_id: str) -> None:
         dbgp(f"< cell_to_inst -> APPEND: {line}")
 
 
+def get_label(cell_id: str) -> str:
+    cell = WORKBOOK_DATA["report"][cell_id]
+    return cell.value
+
+
 def create_program() -> str:
     with open("fapp_top.py.in") as top:
         result = top.readlines()
@@ -288,12 +298,11 @@ def create_program() -> str:
 
 
 def add_key_single_value_pair(key: str, value: str) -> None:
-    cell_to_inst(key)
     cell_to_inst(value)
-    OUTPUT_DICT[cell_id_to_varname(key)] = cell_id_to_varname(value)
+    OUTPUT_DICT[get_label(key)] = cell_id_to_varname(value)
 
 
-def add_column_of_1_12_1(key: str, first: str, num_rows: int = 12):
+def add_column_of_12_1(key: str, first: str, num_rows: int = 12):
     first_cell = cell_id_to_obj(first)
     row = first_cell.row
     col = first_cell.col_idx - 1
@@ -308,9 +317,9 @@ def add_column_of_1_12_1(key: str, first: str, num_rows: int = 12):
     total_var = cell_id_to_varname(total_id)
 
     value = f"[e for e in [{', '.join(cell_varnames)}] if e != '']"
-    OUTPUT_DICT[key] = value
-    print(total_var)
-    OUTPUT_DICT[f"{key}_total"] = total_var
+    label = get_label(key)
+    OUTPUT_DICT[label] = value
+    OUTPUT_DICT[f"{label}_total"] = total_var
 
 
 def main():
@@ -322,8 +331,11 @@ def main():
     # add_key_single_value_pair("O3", "Q3")
     # add_key_single_value_pair("O4", "Q4")
 
-    # add_column_of_1_12_1("BLA", "C14")
-    add_column_of_1_12_1("foo", "D14")
+    # add_column_of_12_1("C8", "C14")
+    # add_column_of_12_1("D8", "D14")
+    # for col in "CDEFHIJKLMN":
+    for col in "E":
+        add_column_of_12_1(f"{col}8", f"{col}14")
     assert WORKSHEET_STACK == []
 
     program = create_program()
@@ -334,9 +346,10 @@ def main():
 
 
 # main prelude
-if "WORKBOOK" not in locals():
+if "WORKBOOK" not in locals() or "WORKBOOK_DATA" not in locals():
     filename = Path(
         "~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report/cpu_pa_report.xlsm"
     ).expanduser()
     WORKBOOK = openpyxl.load_workbook(filename)
+    WORKBOOK_DATA = openpyxl.load_workbook(filename, data_only=True)
 main()
