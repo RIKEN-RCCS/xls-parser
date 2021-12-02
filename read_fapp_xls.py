@@ -8,8 +8,10 @@ from openpyxl.cell.cell import Cell, MergedCell
 from openpyxl.formula import Tokenizer
 from openpyxl.formula.tokenizer import Token
 
-# from openpyxl.workbook.workbook import Workbook
-# from openpyxl.worksheet.worksheet import Worksheet
+
+def dbgp(msg):
+    # return
+    print(msg)
 
 
 LINES = []
@@ -27,7 +29,16 @@ SPECIAL_FAPP_XML_CALL = {
     "G12": f"{FAPP_XML_OBJ}.get_measured_region()",
     "C10": f"{FAPP_XML_OBJ}.get_vector_length()",
 }
-DATA_VALUES = {"C17", "C16"}
+DATA_VALUES = {
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "C14",
+    "C15",
+    "C16",
+    "C17",
+}
 
 HEADER_ROW = 29
 TOP_ROW = 30
@@ -39,11 +50,6 @@ INFIX_OP_MAP = {
     "=": "==",
     "^": "**",
 }
-
-
-def dbgp(msg):
-    # return
-    print(msg)
 
 
 def is_event_cell(cell_id: str) -> bool:
@@ -203,9 +209,9 @@ def parse_func(tokens: list[Token], cur: int):
             terms, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
             result = f"(xls_sum({terms}) / len(xls_nonempty({terms})))"
-        elif tokens[cur].value == "INDEX(":
-            print(tokens[cur:])
-            result = ""
+        # elif tokens[cur].value == "GuardLimitUpper(":
+        #     print(tokens[cur:])
+        #     result = ""
         else:
             unknown_func_exception(tokens[cur])
     elif tokens[cur].subtype == Token.CLOSE:
@@ -242,6 +248,8 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
             result += parse_infix_op(token)
         elif token.type == Token.PAREN:
             result += token.value
+        elif token.type == Token.WSPACE:
+            pass
         elif token.type == Token.SEP:
             break
         else:
@@ -331,10 +339,8 @@ def main():
     # add_key_single_value_pair("O3", "Q3")
     # add_key_single_value_pair("O4", "Q4")
 
-    # add_column_of_12_1("C8", "C14")
-    # add_column_of_12_1("D8", "D14")
     # for col in "CDEFHIJKLMN":
-    for col in "E":
+    for col in "L":
         add_column_of_12_1(f"{col}8", f"{col}14")
     assert WORKSHEET_STACK == []
 
