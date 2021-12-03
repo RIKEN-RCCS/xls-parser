@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from collections import OrderedDict
 from pathlib import Path
 from typing import Optional
 
@@ -15,7 +16,7 @@ def dbgp(msg):
 
 
 LINES = []
-OUTPUT_DICT = {}
+OUTPUT_DICT = OrderedDict()
 PROCESSED_CELLS = set()
 WORKSHEET_STACK = []
 
@@ -90,7 +91,7 @@ def cell_id_to_varname(cell_id: str) -> str:
         cells = cell_id_to_obj(cell_id)
         cell_ids = [cell_obj_to_id(cell[0]) for cell in cells]
         cell_vars = [cell_id_to_varname(cell_id) for cell_id in cell_ids]
-        result = f"[{', '.join(cell_vars)}]"
+        result = f"{', '.join(cell_vars)}"
     else:
         cell_id = full_cell_id(cell_id)
         result = cell_id.replace("!", "_").replace("$", "")
@@ -142,7 +143,7 @@ def python_cmd_to_read_xml(cell_id: str) -> Optional[str]:
         cell_ids = [cell_obj_to_id(cell[0]) for cell in cells]
         results = [python_cmd_to_read_xml(cell_id) for cell_id in cell_ids]
         if any(results):
-            result = f"[{', '.join(results)}]"
+            result = f"{', '.join(results)}"
     else:
         cell_id = full_cell_id(cell_id)
         ws, cell = cell_id.split("!")
@@ -206,15 +207,19 @@ def parse_func(tokens: list[Token], cur: int):
         elif tokens[cur].value == "COUNT(":
             cells, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
-            result = f"sum(1 for e in {cells} if e !='')"
+            result = f"sum(1 for e in [{cells}] if e !='')"
         elif tokens[cur].value == "SUM(":
             terms, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
-            result = f"(xls_sum({terms}))"
+            result = f"(xls_sum([{terms}]))"
         elif tokens[cur].value == "AVERAGE(":
             terms, cur = parse_tokens(tokens, cur + 1)
+            while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
+                tmp, cur = parse_tokens(tokens, cur + 1)
+                if tmp != "":
+                    terms += f", {tmp}"
             assert_func_close(tokens[cur])
-            result = f"(xls_sum({terms}) / len(xls_nonempty({terms})))"
+            result = f"(xls_sum([{terms}]) / len(xls_nonempty([{terms}])))"
         elif tokens[cur].value == "GuardLimitLower(":
             args, cur = parse_tokens(tokens, cur + 1)
             while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
@@ -309,10 +314,10 @@ def create_program() -> str:
         result = top.readlines()
     result += [line + "\n" for line in LINES]
 
-    line = "result={"
+    line = "result = OrderedDict(["
     for key, value in OUTPUT_DICT.items():
-        line += f"'{key}': {value}, "
-    line += "}\n"
+        line += f"('{key}', {value}), "
+    line += "])\n"
     result.append(line)
 
     with open("fapp_bottom.py.in") as top:
@@ -349,23 +354,35 @@ def add_column_of_12_1(key: str, first: str, num_rows: int = 12):
     OUTPUT_DICT[f"{label}_total"] = total_var
 
 
+def colnames(start: str, end: str, prefix: str = ""):
+    return [f"{prefix}{chr(c)}" for c in range(ord(start), ord(end) + 1)]
+
+
 def main():
-    # add_key_single_value_pair("A3", "C3")
-    # add_key_single_value_pair("A4", "C4")
-    # add_key_single_value_pair("H3", "J3")
-    # add_key_single_value_pair("H4", "J4")
-    # add_key_single_value_pair("H5", "J5")
-    # add_key_single_value_pair("O3", "Q3")
-    # add_key_single_value_pair("O4", "Q4")
+    add_key_single_value_pair("A3", "C3")
+    add_key_single_value_pair("A4", "C4")
+    add_key_single_value_pair("H3", "J3")
+    add_key_single_value_pair("H4", "J4")
+    add_key_single_value_pair("H5", "J5")
+    add_key_single_value_pair("O3", "Q3")
+    add_key_single_value_pair("O4", "Q4")
 
     # STATISTICS
-    # for col in "CDEFHIJKLMN":
-    #     add_column_of_12_1(f"{col}8", f"{col}14")
-    # add_key_single_value_pair("G8", "G14")
+    for col in "CDEFHIJKLMN":
+        add_column_of_12_1(f"{col}8", f"{col}14")
+    add_key_single_value_pair("G8", "G14")
 
-    # for col in "":
-    for col in ["AK"]:
+    # CYCLE ACCOUNTING
+    for col in colnames("R", "Z") + colnames("A", "C", prefix="A"):
         add_column_of_12_1(f"{col}9", f"{col}14")
+    for col in colnames("D", "G", prefix="A"):
+        add_column_of_12_1(f"{col}8", f"{col}14")
+    for col in colnames("H", "K", prefix="A"):
+        add_column_of_12_1(f"{col}9", f"{col}14")
+
+    # BUSY
+    for col in colnames("C", "G"):
+        add_column_of_12_1(f"{col}28", f"{col}34")
 
     program = create_program()
 
