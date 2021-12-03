@@ -359,6 +359,7 @@ def colnames(start: str, end: str, prefix: str = ""):
 
 
 def main():
+    # TOP
     add_key_single_value_pair("A3", "C3")
     add_key_single_value_pair("A4", "C4")
     add_key_single_value_pair("H3", "J3")
@@ -383,6 +384,51 @@ def main():
     # BUSY
     for col in colnames("C", "G"):
         add_column_of_12_1(f"{col}28", f"{col}34")
+    add_key_single_value_pair("H28", "H34")
+    add_key_single_value_pair("I28", "I34")
+    for col in colnames("J", "P"):
+        add_column_of_12_1(f"{col}28", f"{col}34")
+
+    # CACHE
+    for col in colnames("C", "P"):
+        add_column_of_12_1(f"{col}48", f"{col}55")
+
+    # INSTRUCTIONS
+    for col in colnames("C", "P"):
+        add_column_of_12_1(f"{col}72", f"{col}77")
+    for col in colnames("Q", "S"):
+        add_column_of_12_1(f"{col}70", f"{col}77")
+    for col in colnames("T", "T"):
+        add_column_of_12_1(f"{col}69", f"{col}77")
+    for col in colnames("U", "W"):
+        add_column_of_12_1(f"{col}70", f"{col}77")
+    for col in colnames("X", "Y"):
+        add_column_of_12_1(f"{col}71", f"{col}77")
+    for col in colnames("Z", "Z") + colnames("A", "D", prefix="A"):
+        add_column_of_12_1(f"{col}69", f"{col}77")
+
+    # POWER
+    add_column_of_12_1(f"AI69", f"AI77")
+    add_key_single_value_pair("AJ69", "AJ77")
+    add_key_single_value_pair("AK69", "AK77")
+
+    # PREFETCH
+    for col in colnames("C", "I"):
+        add_column_of_12_1(f"{col}93", f"{col}98")
+
+    # FLOP
+    for col in colnames("M", "P"):
+        add_column_of_12_1(f"{col}92", f"{col}98")
+
+    # EXTRA
+    for col in colnames("T", "Z") + colnames("A", "B", prefix="A"):
+        add_column_of_12_1(f"{col}93", f"{col}98")
+    add_column_of_12_1(f"AC92", f"AC98")
+
+    # DATA TRANSFER
+    # for col in colnames("C", "F"):
+    #     add_key_single_value_pair(f"{col}113", f"{col}115")
+    #     add_key_single_value_pair(f"{col}113", f"{col}116")
 
     program = create_program()
 
