@@ -10,7 +10,7 @@ from openpyxl.formula.tokenizer import Token
 
 
 def dbgp(msg):
-    # return
+    return
     print(msg)
 
 
@@ -29,6 +29,9 @@ SPECIAL_FAPP_XML_CALL = {
     "G12": f"{FAPP_XML_OBJ}.get_measured_region()",
     "C10": f"{FAPP_XML_OBJ}.get_vector_length()",
 }
+
+# These cells are read by formulas and are "hardcoded" in the excel
+# sheet (i.e. they are not read from anywhere else, e.g. from xml).
 DATA_VALUES = {
     "C6",
     "C7",
@@ -38,6 +41,7 @@ DATA_VALUES = {
     "C15",
     "C16",
     "C17",
+    "Y4",
 }
 
 HEADER_ROW = 29
@@ -68,8 +72,10 @@ def is_event_cell(cell_id: str) -> bool:
 def full_cell_id(cell_id: str) -> str:
     dbgp(f"> full_cell_id({cell_id})")
     prefix = WORKSHEET_STACK[-1] if WORKSHEET_STACK else "report"
-    if "!" not in cell_id:
-        return f"{prefix}!{cell_id}"
+    if cell_id in WORKBOOK.defined_names:
+        cell_id = WORKBOOK.defined_names[cell_id].value
+    elif "!" not in cell_id:
+        cell_id = f"{prefix}!{cell_id}"
     dbgp(f"< full_cell_id -> {cell_id}")
     return cell_id
 
@@ -196,11 +202,11 @@ def parse_func(tokens: list[Token], cur: int):
                 if tmp != "":
                     ops += f", {tmp}"
             assert_func_close(tokens[cur])
-            result = f"(any([{ops}]))"
+            result = f"any([{ops}])"
         elif tokens[cur].value == "COUNT(":
             cells, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
-            result = f"(sum(1 for e in {cells} if e !=''))"
+            result = f"sum(1 for e in {cells} if e !='')"
         elif tokens[cur].value == "SUM(":
             terms, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
@@ -209,9 +215,22 @@ def parse_func(tokens: list[Token], cur: int):
             terms, cur = parse_tokens(tokens, cur + 1)
             assert_func_close(tokens[cur])
             result = f"(xls_sum({terms}) / len(xls_nonempty({terms})))"
-        # elif tokens[cur].value == "GuardLimitUpper(":
-        #     print(tokens[cur:])
-        #     result = ""
+        elif tokens[cur].value == "GuardLimitLower(":
+            args, cur = parse_tokens(tokens, cur + 1)
+            while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
+                tmp, cur = parse_tokens(tokens, cur + 1)
+                if tmp != "":
+                    args += f", {tmp}"
+            assert_func_close(tokens[cur])
+            result = f"vba_guard_limit_lower({args})"
+        elif tokens[cur].value == "GuardLimitUpper(":
+            args, cur = parse_tokens(tokens, cur + 1)
+            while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
+                tmp, cur = parse_tokens(tokens, cur + 1)
+                if tmp != "":
+                    args += f", {tmp}"
+            assert_func_close(tokens[cur])
+            result = f"vba_guard_limit_upper({args})"
         else:
             unknown_func_exception(tokens[cur])
     elif tokens[cur].subtype == Token.CLOSE:
@@ -339,10 +358,14 @@ def main():
     # add_key_single_value_pair("O3", "Q3")
     # add_key_single_value_pair("O4", "Q4")
 
+    # STATISTICS
     # for col in "CDEFHIJKLMN":
-    for col in "L":
-        add_column_of_12_1(f"{col}8", f"{col}14")
-    assert WORKSHEET_STACK == []
+    #     add_column_of_12_1(f"{col}8", f"{col}14")
+    # add_key_single_value_pair("G8", "G14")
+
+    # for col in "":
+    for col in ["AK"]:
+        add_column_of_12_1(f"{col}9", f"{col}14")
 
     program = create_program()
 

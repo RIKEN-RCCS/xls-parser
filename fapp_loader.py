@@ -30,12 +30,23 @@ class FappXml:
 
     def get_event(self, event_name, thread_id):
         assert 0 <= thread_id and thread_id < 12, "Wrong thread id"
-        idx = self.event_dict[event_name][0]
-        query = f"./information/region[@name='{self.region_name}']"
-        query += f"/spawn/process/thread[@id='{thread_id}']"
-        query += f"/cpupa/event[@name='{event_name}']"
-        result = self.xmls[idx].find(query)
-        return int(result.text) if result is not None else ""
+        result = ""
+        if event_name == "LABEL-FAPP-cpupa":
+            query = f"./information/region[@name='{self.region_name}']"
+            query += f"/spawn/process/thread[@id='{thread_id}']"
+
+            if self.xmls[0].findall(f"{query}/cpupa"):
+                result = "FAPP-cpupa"
+            return result
+        else:
+            idx = self.event_dict[event_name][0]
+            query = f"./information/region[@name='{self.region_name}']"
+            query += f"/spawn/process/thread[@id='{thread_id}']"
+            query += f"/cpupa/event[@name='{event_name}']"
+            element = self.xmls[idx].find(query)
+            if element is not None:
+                result = int(element.text)
+        return result
 
     # Single values
     def get_measured_time(self) -> str:

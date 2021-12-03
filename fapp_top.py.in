@@ -12,6 +12,28 @@ def xls_sum(ops: list):
     return sum(map(lambda t: float(t) if t != "" else 0, ops))
 
 
+def vba_guard_limit_lower(data, flag: float, lower_limit: float = 1):
+    try:
+        ddata = float(data)
+    except Exception():
+        return data
+    if flag == 0:
+        if ddata < lower_limit:
+            ddata = lower_limit
+    return ddata
+
+
+def vba_guard_limit_upper(data, flag: float, upper_limit: float = 1):
+    try:
+        ddata = float(data)
+    except Exception():
+        return data
+    if flag == 0:
+        if ddata > upper_limit:
+            ddata = upper_limit
+    return ddata
+
+
 reload(fapp_loader)
 
 fapp_xml = fapp_loader.FappXml("~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report")
