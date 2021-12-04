@@ -1,1 +1,3 @@
 #+title: xls-parser
+
+A script which "transpiles" `xls` files into `python` files.
