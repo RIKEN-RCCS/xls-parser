@@ -4,6 +4,17 @@ from pprint import pprint
 
 import fapp_loader
 
+RESULT = OrderedDict()
+
+
+def path_add(path: list[str], key: str, value):
+    cur_dict = RESULT
+    for p in path:
+        if p not in cur_dict:
+            cur_dict[p] = {}
+        cur_dict = cur_dict[p]
+    cur_dict[key] = value
+
 
 def xls_nonempty(ops: list):
     return [e for e in ops if e != ""]

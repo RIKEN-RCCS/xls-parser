@@ -15,8 +15,9 @@ def dbgp(msg):
     print(msg)
 
 
+WORKBOOK = None
+WORKBOOK_DATA = None
 LINES = []
-OUTPUT_DICT = OrderedDict()
 PROCESSED_CELLS = set()
 WORKSHEET_STACK = []
 
@@ -314,12 +315,6 @@ def create_program() -> str:
         result = top.readlines()
     result += [line + "\n" for line in LINES]
 
-    line = "result = OrderedDict(["
-    for key, value in OUTPUT_DICT.items():
-        line += f"('{key}', {value}), "
-    line += "])\n"
-    result.append(line)
-
     with open("fapp_bottom.py.in") as top:
         result += top.readlines()
 
@@ -354,11 +349,57 @@ def add_column_of_12_1(key: str, first: str, num_rows: int = 12):
     OUTPUT_DICT[f"{label}_total"] = total_var
 
 
-def colnames(start: str, end: str, prefix: str = ""):
-    return [f"{prefix}{chr(c)}" for c in range(ord(start), ord(end) + 1)]
+def _col2num(col: str, base: int = 26) -> int:
+    ords = list(map(lambda t: ord(t) - ord("A"), col))
+    result = ords[0]
+    if len(col) == 2:
+        result = (ords[0] + 1) * base + ords[1]
+    return result
+
+
+def _num2col(num: int, base: int = 26) -> str:
+    q, r = divmod(num, base)
+    result = chr(r + ord("A"))
+    if q:
+        result = chr(q - 1 + ord("A")) + result
+    return result
+
+
+def col_range(begin_col: str, end_col: str):
+    assert len(begin_col) <= 2
+    assert len(end_col) <= 2
+
+    begin_num = _col2num(begin_col)
+    end_num = _col2num(end_col)
+    return [_num2col(num) for num in range(begin_num, end_num + 1)]
+
+
+def add_table(
+    prefix: list[str],
+    begin_col: str,
+    end_col: str,
+    head_row: int,
+    first_row: int,
+    exceptions: list[str] = [],
+):
+    for col in col_range(begin_col, end_col):
+        head_cell = col + str(head_row)
+        first_cell = col + str(first_row)
+        if col in exceptions:
+            add_key_single_value_pair(head_cell, first_cell)
+        else:
+            add_column_of_12_1(head_cell, first_cell)
 
 
 def main():
+    path = "~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report/cpu_pa_report.xlsm"
+    global WORKBOOK
+    global WORKBOOK_DATA
+
+    if WORKBOOK is None or WORKBOOK_DATA is None:
+        filename = Path(path).expanduser()
+        WORKBOOK = openpyxl.load_workbook(filename)
+        WORKBOOK_DATA = openpyxl.load_workbook(filename, data_only=True)
     # TOP
     add_key_single_value_pair("A3", "C3")
     add_key_single_value_pair("A4", "C4")
@@ -369,61 +410,62 @@ def main():
     add_key_single_value_pair("O4", "Q4")
 
     # STATISTICS
-    for col in "CDEFHIJKLMN":
-        add_column_of_12_1(f"{col}8", f"{col}14")
-    add_key_single_value_pair("G8", "G14")
+    add_table(["A8"], "C", "N", 8, 14, exceptions=["G"])
+    # for col in "CDEFHIJKLMN":
+    #     add_column_of_12_1(f"{col}8", f"{col}14")
+    # add_key_single_value_pair("G8", "G14")
 
-    # CYCLE ACCOUNTING
-    for col in colnames("R", "Z") + colnames("A", "C", prefix="A"):
-        add_column_of_12_1(f"{col}9", f"{col}14")
-    for col in colnames("D", "G", prefix="A"):
-        add_column_of_12_1(f"{col}8", f"{col}14")
-    for col in colnames("H", "K", prefix="A"):
-        add_column_of_12_1(f"{col}9", f"{col}14")
+    # # CYCLE ACCOUNTING
+    # for col in colnames("R", "Z") + colnames("A", "C", prefix="A"):
+    #     add_column_of_12_1(f"{col}9", f"{col}14")
+    # for col in colnames("D", "G", prefix="A"):
+    #     add_column_of_12_1(f"{col}8", f"{col}14")
+    # for col in colnames("H", "K", prefix="A"):
+    #     add_column_of_12_1(f"{col}9", f"{col}14")
 
-    # BUSY
-    for col in colnames("C", "G"):
-        add_column_of_12_1(f"{col}28", f"{col}34")
-    add_key_single_value_pair("H28", "H34")
-    add_key_single_value_pair("I28", "I34")
-    for col in colnames("J", "P"):
-        add_column_of_12_1(f"{col}28", f"{col}34")
+    # # BUSY
+    # for col in colnames("C", "G"):
+    #     add_column_of_12_1(f"{col}28", f"{col}34")
+    # add_key_single_value_pair("H28", "H34")
+    # add_key_single_value_pair("I28", "I34")
+    # for col in colnames("J", "P"):
+    #     add_column_of_12_1(f"{col}28", f"{col}34")
 
-    # CACHE
-    for col in colnames("C", "P"):
-        add_column_of_12_1(f"{col}48", f"{col}55")
+    # # CACHE
+    # for col in colnames("C", "P"):
+    #     add_column_of_12_1(f"{col}48", f"{col}55")
 
-    # INSTRUCTIONS
-    for col in colnames("C", "P"):
-        add_column_of_12_1(f"{col}72", f"{col}77")
-    for col in colnames("Q", "S"):
-        add_column_of_12_1(f"{col}70", f"{col}77")
-    for col in colnames("T", "T"):
-        add_column_of_12_1(f"{col}69", f"{col}77")
-    for col in colnames("U", "W"):
-        add_column_of_12_1(f"{col}70", f"{col}77")
-    for col in colnames("X", "Y"):
-        add_column_of_12_1(f"{col}71", f"{col}77")
-    for col in colnames("Z", "Z") + colnames("A", "D", prefix="A"):
-        add_column_of_12_1(f"{col}69", f"{col}77")
+    # # INSTRUCTIONS
+    # for col in colnames("C", "P"):
+    #     add_column_of_12_1(f"{col}72", f"{col}77")
+    # for col in colnames("Q", "S"):
+    #     add_column_of_12_1(f"{col}70", f"{col}77")
+    # for col in colnames("T", "T"):
+    #     add_column_of_12_1(f"{col}69", f"{col}77")
+    # for col in colnames("U", "W"):
+    #     add_column_of_12_1(f"{col}70", f"{col}77")
+    # for col in colnames("X", "Y"):
+    #     add_column_of_12_1(f"{col}71", f"{col}77")
+    # for col in colnames("Z", "Z") + colnames("A", "D", prefix="A"):
+    #     add_column_of_12_1(f"{col}69", f"{col}77")
 
-    # POWER
-    add_column_of_12_1(f"AI69", f"AI77")
-    add_key_single_value_pair("AJ69", "AJ77")
-    add_key_single_value_pair("AK69", "AK77")
+    # # POWER
+    # add_column_of_12_1(f"AI69", f"AI77")
+    # add_key_single_value_pair("AJ69", "AJ77")
+    # add_key_single_value_pair("AK69", "AK77")
 
-    # PREFETCH
-    for col in colnames("C", "I"):
-        add_column_of_12_1(f"{col}93", f"{col}98")
+    # # PREFETCH
+    # for col in colnames("C", "I"):
+    #     add_column_of_12_1(f"{col}93", f"{col}98")
 
-    # FLOP
-    for col in colnames("M", "P"):
-        add_column_of_12_1(f"{col}92", f"{col}98")
+    # # FLOP
+    # for col in colnames("M", "P"):
+    #     add_column_of_12_1(f"{col}92", f"{col}98")
 
-    # EXTRA
-    for col in colnames("T", "Z") + colnames("A", "B", prefix="A"):
-        add_column_of_12_1(f"{col}93", f"{col}98")
-    add_column_of_12_1(f"AC92", f"AC98")
+    # # EXTRA
+    # for col in colnames("T", "Z") + colnames("A", "B", prefix="A"):
+    #     add_column_of_12_1(f"{col}93", f"{col}98")
+    # add_column_of_12_1(f"AC92", f"AC98")
 
     # DATA TRANSFER
     # for col in colnames("C", "F"):
@@ -438,10 +480,4 @@ def main():
 
 
 # main prelude
-if "WORKBOOK" not in locals() or "WORKBOOK_DATA" not in locals():
-    filename = Path(
-        "~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report/cpu_pa_report.xlsm"
-    ).expanduser()
-    WORKBOOK = openpyxl.load_workbook(filename)
-    WORKBOOK_DATA = openpyxl.load_workbook(filename, data_only=True)
 main()
