@@ -1,7 +1,7 @@
+import argparse
 import json
 from collections import OrderedDict
 from importlib import reload
-from pprint import pprint
 
 import fapp_loader
 
@@ -45,9 +45,14 @@ def vba_guard_limit_upper(data, flag: float, upper_limit: float = 1):
     return ddata
 
 
-reload(fapp_loader)
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "input_xml_dir",
+    help="Path to a directory containing paN.xml files generated using `fapp -txml`",
+)
+args = parser.parse_args()
 
-fapp_xml = fapp_loader.FappXml("~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report")
+fapp_xml = fapp_loader.FappXml(args.input_xml_dir)
 results = OrderedDict()
 
 ### TOP END ###

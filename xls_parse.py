@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-
-from collections import OrderedDict
+import argparse
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -310,7 +310,7 @@ def get_label(cell_id: str) -> str:
     return cell.value
 
 
-def create_program() -> str:
+def create_program(output: str) -> str:
     with open("fapp_top.py.in") as top:
         result = top.readlines()
     result += [line + "\n" for line in LINES]
@@ -319,7 +319,7 @@ def create_program() -> str:
         result += top.readlines()
 
     result = "".join(result)
-    with open("read_fapp_xls.out.py", "w") as out:
+    with open(output, "w") as out:
         out.write(result)
     return result
 
@@ -398,14 +398,26 @@ def add_table(
 
 
 def main():
-    path = "~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report/cpu_pa_report.xlsm"
     global WORKBOOK
     global WORKBOOK_DATA
 
-    if WORKBOOK is None or WORKBOOK_DATA is None:
-        filename = Path(path).expanduser()
-        WORKBOOK = openpyxl.load_workbook(filename)
-        WORKBOOK_DATA = openpyxl.load_workbook(filename, data_only=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "input_xls",
+        type=str,
+        help="Path to the input xls file",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=sys.argv[0].replace(".py", ".out.py"),
+        help="Name of the output file",
+    )
+    args = parser.parse_args()
+    filename = Path(args.input_xls).expanduser()
+
+    WORKBOOK = openpyxl.load_workbook(filename)
+    WORKBOOK_DATA = openpyxl.load_workbook(filename, data_only=True)
 
     # TOP
     add_key_single_value_pair([], "A3", "C3")
@@ -461,16 +473,12 @@ def main():
     add_table(["R92", "W92"], "W", "AB", 93, 98)
     add_table(["R92"], "AC", "AC", 92, 98)
 
-    # DATA TRANSFER
+    # # DATA TRANSFER
     # for col in colnames("C", "F"):
     #     add_key_single_value_pair(f"{col}113", f"{col}115")
     #     add_key_single_value_pair(f"{col}113", f"{col}116")
 
-    # print(LINES)
-    program = create_program()
-    # print(program)
-    exec(program)
+    create_program(Path(args.output).expanduser())
 
 
-# main prelude
 main()
