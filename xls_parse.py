@@ -311,8 +311,13 @@ def get_label(cell_id: str) -> str:
 
 
 def create_program(output: str) -> str:
+    result = []
+    with open("fapp_loader.py") as loader:
+        result += loader.readlines()
+
     with open("fapp_top.py.in") as top:
-        result = top.readlines()
+        result += top.readlines()
+
     result += [line + "\n" for line in LINES]
 
     with open("fapp_bottom.py.in") as top:

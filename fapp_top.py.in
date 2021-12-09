@@ -1,9 +1,8 @@
 import argparse
 import json
 from collections import OrderedDict
-from importlib import reload
 
-import fapp_loader
+# from fapp_loader import FappXml
 
 
 def add_path(path: list[str], key: str, value, results: OrderedDict):
@@ -52,7 +51,7 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-fapp_xml = fapp_loader.FappXml(args.input_xml_dir)
+fapp_xml = FappXml(args.input_xml_dir)
 results = OrderedDict()
 
 ### TOP END ###
