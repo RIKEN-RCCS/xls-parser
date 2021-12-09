@@ -1,3 +1,4 @@
 ### BOTTOM BEGIN ###
-pprint(results)
+# pprint(results)
+print(json.dumps(results))
 print("Generated program: DONE")
