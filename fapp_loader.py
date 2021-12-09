@@ -1,7 +1,6 @@
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
-from pprint import pprint
 
 
 class FappXml:
@@ -77,14 +76,3 @@ class FappXml:
     def get_counter_timer_freq(self) -> str:
         query = "./environment/spawn/process/cntfrq"
         return int(self.xmls[0].find(query).text)
-
-
-if __name__ == "__main__":
-    print("--- begin ---")
-
-    fapp_xml = FappXml("~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report")
-
-    xml = fapp_xml.xmls[0]
-    print(fapp_xml.get_event("0x80c0", 0))
-    # pprint(fapp_xml.event_dict)
-    print("--- end ---")
