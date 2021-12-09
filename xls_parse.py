@@ -186,63 +186,94 @@ def parse_operand(token: Token) -> str:
     return result
 
 
-def parse_func(tokens: list[Token], cur: int):
+def parse_if(tokens: list[Token], cur: int) -> (str, int):
+    cond, cur = parse_tokens(tokens, cur + 1)
+    assert_sep_comma(tokens[cur])
+    true_val, cur = parse_tokens(tokens, cur + 1)
+    assert_sep_comma(tokens[cur])
+    false_val, cur = parse_tokens(tokens, cur + 1)
+    assert_func_close(tokens[cur])
+    result = f"({true_val}) if ({cond}) else ({false_val})"
+    return result, cur
+
+
+def parse_or(tokens: list[Token], cur: int) -> (str, int):
+    ops, cur = parse_tokens(tokens, cur + 1)
+    while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
+        tmp, cur = parse_tokens(tokens, cur + 1)
+        if tmp != "":
+            ops += f", {tmp}"
+    assert_func_close(tokens[cur])
+    result = f"any([{ops}])"
+    return result, cur
+
+
+def parse_count(tokens: list[Token], cur: int) -> (str, int):
+    cells, cur = parse_tokens(tokens, cur + 1)
+    assert_func_close(tokens[cur])
+    result = f"sum(1 for e in [{cells}] if e !='')"
+    return result, cur
+
+
+def parse_sum(tokens: list[Token], cur: int) -> (str, int):
+    terms, cur = parse_tokens(tokens, cur + 1)
+    assert_func_close(tokens[cur])
+    result = f"(xls_sum([{terms}]))"
+    return result, cur
+
+
+def parse_average(tokens: list[Token], cur: int) -> (str, int):
+    terms, cur = parse_tokens(tokens, cur + 1)
+    while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
+        tmp, cur = parse_tokens(tokens, cur + 1)
+        if tmp != "":
+            terms += f", {tmp}"
+    assert_func_close(tokens[cur])
+    result = f"(xls_sum([{terms}]) / len(xls_nonempty([{terms}])))"
+    return result, cur
+
+
+def parse_gl_lower(tokens: list[Token], cur: int) -> (str, int):
+    args, cur = parse_tokens(tokens, cur + 1)
+    while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
+        tmp, cur = parse_tokens(tokens, cur + 1)
+        if tmp != "":
+            args += f", {tmp}"
+    assert_func_close(tokens[cur])
+    result = f"vba_guard_limit_lower({args})"
+    return result, cur
+
+
+def parse_gl_upper(tokens: list[Token], cur: int) -> (str, int):
+    args, cur = parse_tokens(tokens, cur + 1)
+    while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
+        tmp, cur = parse_tokens(tokens, cur + 1)
+        if tmp != "":
+            args += f", {tmp}"
+    assert_func_close(tokens[cur])
+    result = f"vba_guard_limit_upper({args})"
+    return result, cur
+
+
+def parse_func(tokens: list[Token], cur: int) -> (str, int):
     dbgp(f"> parse_func({tokens} {cur} = {tokens[cur]})")
-    if tokens[cur].subtype == Token.OPEN:
-        if tokens[cur].value == "IF(":
-            cond, cur = parse_tokens(tokens, cur + 1)
-            assert_sep_comma(tokens[cur])
-            true_val, cur = parse_tokens(tokens, cur + 1)
-            assert_sep_comma(tokens[cur])
-            false_val, cur = parse_tokens(tokens, cur + 1)
-            assert_func_close(tokens[cur])
-            result = f"({true_val}) if ({cond}) else ({false_val})"
-        elif tokens[cur].value == "OR(":
-            ops, cur = parse_tokens(tokens, cur + 1)
-            while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
-                tmp, cur = parse_tokens(tokens, cur + 1)
-                if tmp != "":
-                    ops += f", {tmp}"
-            assert_func_close(tokens[cur])
-            result = f"any([{ops}])"
-        elif tokens[cur].value == "COUNT(":
-            cells, cur = parse_tokens(tokens, cur + 1)
-            assert_func_close(tokens[cur])
-            result = f"sum(1 for e in [{cells}] if e !='')"
-        elif tokens[cur].value == "SUM(":
-            terms, cur = parse_tokens(tokens, cur + 1)
-            assert_func_close(tokens[cur])
-            result = f"(xls_sum([{terms}]))"
-        elif tokens[cur].value == "AVERAGE(":
-            terms, cur = parse_tokens(tokens, cur + 1)
-            while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
-                tmp, cur = parse_tokens(tokens, cur + 1)
-                if tmp != "":
-                    terms += f", {tmp}"
-            assert_func_close(tokens[cur])
-            result = f"(xls_sum([{terms}]) / len(xls_nonempty([{terms}])))"
-        elif tokens[cur].value == "GuardLimitLower(":
-            args, cur = parse_tokens(tokens, cur + 1)
-            while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
-                tmp, cur = parse_tokens(tokens, cur + 1)
-                if tmp != "":
-                    args += f", {tmp}"
-            assert_func_close(tokens[cur])
-            result = f"vba_guard_limit_lower({args})"
-        elif tokens[cur].value == "GuardLimitUpper(":
-            args, cur = parse_tokens(tokens, cur + 1)
-            while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
-                tmp, cur = parse_tokens(tokens, cur + 1)
-                if tmp != "":
-                    args += f", {tmp}"
-            assert_func_close(tokens[cur])
-            result = f"vba_guard_limit_upper({args})"
-        else:
-            unknown_func_exception(tokens[cur])
-    elif tokens[cur].subtype == Token.CLOSE:
+    token = tokens[cur]
+    open_func_dict = {
+        "IF(": parse_if,
+        "OR(": parse_or,
+        "COUNT(": parse_count,
+        "SUM(": parse_sum,
+        "AVERAGE(": parse_average,
+        "GuardLimitLower(": parse_gl_lower,
+        "GuardLimitUpper(": parse_gl_upper,
+    }
+    if token.subtype == Token.OPEN:
+        parse_fn = open_func_dict[token.value]
+        result, cur = parse_fn(tokens, cur)
+    elif token.subtype == Token.CLOSE:
         result = None
     else:
-        unknown_subtype_exception(tokens[cur])
+        unknown_subtype_exception(token)
     dbgp(f"< parse_func -> {result, cur}")
     return result, cur
 
