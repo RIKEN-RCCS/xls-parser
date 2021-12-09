@@ -324,29 +324,39 @@ def create_program() -> str:
     return result
 
 
-def add_key_single_value_pair(key: str, value: str) -> None:
+def record_entry(prefix: list[str], key: str, value: str) -> None:
+    LINES.append(
+        f"add_path({[get_label(e) for e in prefix]}, '{key}', {value}, results)"
+    )
+
+
+def add_key_single_value_pair(prefix: list[str], key: str, value: str) -> None:
     cell_to_inst(value)
-    OUTPUT_DICT[get_label(key)] = cell_id_to_varname(value)
+    record_entry(prefix, get_label(key), cell_id_to_varname(value))
 
 
-def add_column_of_12_1(key: str, first: str, num_rows: int = 12):
+def add_column_of_12_1(prefix: list[str], key: str, first: str, num_rows: int = 12):
     first_cell = cell_id_to_obj(first)
     row = first_cell.row
     col = first_cell.col_idx - 1
-    cell_varnames = []
-    for offset in range(num_rows):
-        cell_id = cell_obj_to_id(WORKBOOK["report"][row + offset][col])
-        cell_to_inst(cell_id)
-        cell_varnames.append(cell_id_to_varname(cell_id))
+    if isinstance(WORKBOOK["report"][row + 1][col], MergedCell):
+        add_key_single_value_pair(prefix, key, first)
+    else:
+        cell_varnames = []
+        for offset in range(num_rows):
+            cell_id = cell_obj_to_id(WORKBOOK["report"][row + offset][col])
+            cell_to_inst(cell_id)
+            cell_varnames.append(cell_id_to_varname(cell_id))
 
-    total_id = cell_obj_to_id(WORKBOOK["report"][row + num_rows][col])
-    cell_to_inst(total_id)
-    total_var = cell_id_to_varname(total_id)
+        total_id = cell_obj_to_id(WORKBOOK["report"][row + num_rows][col])
+        cell_to_inst(total_id)
 
-    value = f"[e for e in [{', '.join(cell_varnames)}] if e != '']"
-    label = get_label(key)
-    OUTPUT_DICT[label] = value
-    OUTPUT_DICT[f"{label}_total"] = total_var
+        value = f"[e for e in [{', '.join(cell_varnames)}] if e != '']"
+        label = get_label(key)
+        record_entry(prefix, label, value)
+        # total_var = cell_id_to_varname(total_id)
+        # record_entry(prefix, f"{label}_total", total_var)
+        pass
 
 
 def _col2num(col: str, base: int = 26) -> int:
@@ -380,15 +390,11 @@ def add_table(
     end_col: str,
     head_row: int,
     first_row: int,
-    exceptions: list[str] = [],
 ):
     for col in col_range(begin_col, end_col):
         head_cell = col + str(head_row)
         first_cell = col + str(first_row)
-        if col in exceptions:
-            add_key_single_value_pair(head_cell, first_cell)
-        else:
-            add_column_of_12_1(head_cell, first_cell)
+        add_column_of_12_1(prefix, head_cell, first_cell)
 
 
 def main():
@@ -400,81 +406,68 @@ def main():
         filename = Path(path).expanduser()
         WORKBOOK = openpyxl.load_workbook(filename)
         WORKBOOK_DATA = openpyxl.load_workbook(filename, data_only=True)
+
     # TOP
-    add_key_single_value_pair("A3", "C3")
-    add_key_single_value_pair("A4", "C4")
-    add_key_single_value_pair("H3", "J3")
-    add_key_single_value_pair("H4", "J4")
-    add_key_single_value_pair("H5", "J5")
-    add_key_single_value_pair("O3", "Q3")
-    add_key_single_value_pair("O4", "Q4")
+    add_key_single_value_pair([], "A3", "C3")
+    add_key_single_value_pair([], "A4", "C4")
+    add_key_single_value_pair([], "H3", "J3")
+    add_key_single_value_pair([], "H4", "J4")
+    add_key_single_value_pair([], "H5", "J5")
+    add_key_single_value_pair([], "O3", "Q3")
+    add_key_single_value_pair([], "O4", "Q4")
 
     # STATISTICS
-    add_table(["A8"], "C", "N", 8, 14, exceptions=["G"])
-    # for col in "CDEFHIJKLMN":
-    #     add_column_of_12_1(f"{col}8", f"{col}14")
-    # add_key_single_value_pair("G8", "G14")
+    add_table(["A8"], "C", "N", 8, 14)
 
-    # # CYCLE ACCOUNTING
-    # for col in colnames("R", "Z") + colnames("A", "C", prefix="A"):
-    #     add_column_of_12_1(f"{col}9", f"{col}14")
-    # for col in colnames("D", "G", prefix="A"):
-    #     add_column_of_12_1(f"{col}8", f"{col}14")
-    # for col in colnames("H", "K", prefix="A"):
-    #     add_column_of_12_1(f"{col}9", f"{col}14")
+    # CYCLE ACCOUNTING
+    add_table(["P8", "R8"], "R", "S", 9, 14)
+    add_table(["P8", "T8"], "T", "Y", 9, 14)
+    add_table(["P8", "Z8"], "Z", "AA", 9, 14)
+    add_table(["P8", "AB8"], "AB", "AC", 9, 14)
+    add_table(["P8"], "AD", "AG", 8, 14)
+    add_table(["P8", "AH8"], "AH", "AK", 9, 14)
+    add_table(["P8"], "AL", "AL", 8, 14)
 
-    # # BUSY
-    # for col in colnames("C", "G"):
-    #     add_column_of_12_1(f"{col}28", f"{col}34")
-    # add_key_single_value_pair("H28", "H34")
-    # add_key_single_value_pair("I28", "I34")
-    # for col in colnames("J", "P"):
-    #     add_column_of_12_1(f"{col}28", f"{col}34")
+    # BUSY
+    add_table(["A28"], "C", "P", 28, 34)
 
-    # # CACHE
-    # for col in colnames("C", "P"):
-    #     add_column_of_12_1(f"{col}48", f"{col}55")
+    # CACHE
+    add_table(["A48"], "C", "P", 48, 55)
 
-    # # INSTRUCTIONS
-    # for col in colnames("C", "P"):
-    #     add_column_of_12_1(f"{col}72", f"{col}77")
-    # for col in colnames("Q", "S"):
-    #     add_column_of_12_1(f"{col}70", f"{col}77")
-    # for col in colnames("T", "T"):
-    #     add_column_of_12_1(f"{col}69", f"{col}77")
-    # for col in colnames("U", "W"):
-    #     add_column_of_12_1(f"{col}70", f"{col}77")
-    # for col in colnames("X", "Y"):
-    #     add_column_of_12_1(f"{col}71", f"{col}77")
-    # for col in colnames("Z", "Z") + colnames("A", "D", prefix="A"):
-    #     add_column_of_12_1(f"{col}69", f"{col}77")
+    # INSTRUCTIONS
+    add_table(["A69", "C69", "C70", "C71"], "C", "I", 72, 77)
+    add_table(["A69", "C69", "C70", "J71"], "J", "J", 72, 77)
+    add_table(["A69", "C69", "K70", "K71"], "K", "O", 72, 77)
+    add_table(["A69", "C69", "K70", "P71"], "P", "P", 72, 77)
+    add_table(["A69", "Q69"], "Q", "S", 70, 77)
+    add_table(["A69"], "T", "T", 69, 77)
+    add_table(["A69", "U69"], "U", "W", 70, 77)
+    add_table(["A69", "X69"], "X", "Y", 71, 77)
+    add_table(["A69"], "Z", "AE", 69, 77)
 
-    # # POWER
-    # add_column_of_12_1(f"AI69", f"AI77")
-    # add_key_single_value_pair("AJ69", "AJ77")
-    # add_key_single_value_pair("AK69", "AK77")
+    # POWER
+    add_table(["AG69"], "AI", "AK", 69, 77)
 
-    # # PREFETCH
-    # for col in colnames("C", "I"):
-    #     add_column_of_12_1(f"{col}93", f"{col}98")
+    # PREFETCH
+    add_table(["A92", "C92"], "C", "E", 93, 98)
+    add_table(["A92", "F92"], "F", "H", 93, 98)
+    add_table(["A92", "I92"], "I", "I", 93, 98)
 
-    # # FLOP
-    # for col in colnames("M", "P"):
-    #     add_column_of_12_1(f"{col}92", f"{col}98")
+    # FLOP
+    add_table(["K92"], "M", "P", 92, 98)
 
-    # # EXTRA
-    # for col in colnames("T", "Z") + colnames("A", "B", prefix="A"):
-    #     add_column_of_12_1(f"{col}93", f"{col}98")
-    # add_column_of_12_1(f"AC92", f"AC98")
+    # EXTRA
+    add_table(["R92", "T92"], "T", "V", 93, 98)
+    add_table(["R92", "W92"], "W", "AB", 93, 98)
+    add_table(["R92"], "AC", "AC", 92, 98)
 
     # DATA TRANSFER
     # for col in colnames("C", "F"):
     #     add_key_single_value_pair(f"{col}113", f"{col}115")
     #     add_key_single_value_pair(f"{col}113", f"{col}116")
 
-    program = create_program()
-
     # print(LINES)
+    program = create_program()
     # print(program)
     exec(program)
 

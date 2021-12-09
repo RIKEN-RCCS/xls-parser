@@ -4,14 +4,12 @@ from pprint import pprint
 
 import fapp_loader
 
-RESULT = OrderedDict()
 
-
-def path_add(path: list[str], key: str, value):
-    cur_dict = RESULT
+def add_path(path: list[str], key: str, value, results: OrderedDict):
+    cur_dict = results
     for p in path:
         if p not in cur_dict:
-            cur_dict[p] = {}
+            cur_dict[p] = OrderedDict()
         cur_dict = cur_dict[p]
     cur_dict[key] = value
 
@@ -49,5 +47,6 @@ def vba_guard_limit_upper(data, flag: float, upper_limit: float = 1):
 reload(fapp_loader)
 
 fapp_xml = fapp_loader.FappXml("~/Sync/tmp/work/fapp-xmls/gemver_LARGE.fapp.report")
+results = OrderedDict()
 
 ### TOP END ###
