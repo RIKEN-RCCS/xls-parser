@@ -395,35 +395,14 @@ def add_table(
     end_col: str,
     head_row: int,
     first_row: int,
-):
+) -> None:
     for col in col_range(begin_col, end_col):
         head_cell = col + str(head_row)
         first_cell = col + str(first_row)
         add_column_of_12_1(prefix, head_cell, first_cell)
 
 
-def main():
-    global WORKBOOK
-    global WORKBOOK_DATA
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "input_xls",
-        type=str,
-        help="Path to the input xls file",
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        default=sys.argv[0].replace(".py", ".out.py"),
-        help="Name of the output file",
-    )
-    args = parser.parse_args()
-    filename = Path(args.input_xls).expanduser()
-
-    WORKBOOK = openpyxl.load_workbook(filename)
-    WORKBOOK_DATA = openpyxl.load_workbook(filename, data_only=True)
-
+def add_tables() -> None:
     # TOP
     add_key_single_value_pair([], "A3", "C3")
     add_key_single_value_pair([], "A4", "C4")
@@ -483,7 +462,27 @@ def main():
     #     add_key_single_value_pair(f"{col}113", f"{col}115")
     #     add_key_single_value_pair(f"{col}113", f"{col}116")
 
-    create_program(Path(args.output).expanduser())
+
+def main():
+    global WORKBOOK
+    global WORKBOOK_DATA
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "input_xls",
+        type=str,
+        help="Path to the input xls file",
+    )
+    args = parser.parse_args()
+    filename = Path(args.input_xls).expanduser()
+
+    WORKBOOK = openpyxl.load_workbook(filename)
+    WORKBOOK_DATA = openpyxl.load_workbook(filename, data_only=True)
+
+    add_tables()
+
+    out_file = sys.argv[0].replace(".py", ".out.py")
+    create_program(Path(out_file).expanduser())
 
 
 main()
