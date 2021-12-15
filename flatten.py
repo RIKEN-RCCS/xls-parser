@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import json
 import subprocess
 import sys
@@ -19,8 +20,8 @@ def flatten(data: OrderedDict) -> list:
     return results
 
 
-def get_ordered_dict(xml_dir: str) -> OrderedDict:
-    script = Path("~/xls_parse.out.py").expanduser()
+def get_ordered_dict(xml_dir: str, parser: str) -> OrderedDict:
+    script = Path(parser).expanduser()
     cmd = ["python", script, xml_dir.strip()]
     json_out = subprocess.run(cmd, stdout=subprocess.PIPE)
     result = json.loads(json_out.stdout, object_pairs_hook=OrderedDict)
@@ -34,15 +35,24 @@ def get_values(pairs: list):
 
 
 def main():
-    if len(sys.argv) > 1:
-        infile = open(sys.argv[1])
-    else:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--infile", help="Input file")
+    parser.add_argument(
+        "--parser",
+        help="Parser for the xml files",
+        type=str,
+        default="xls_parse.out.py",
+    )
+    args = parser.parse_args()
+    if args.infile is None:
         infile = sys.stdin
+    else:
+        infile = open(args.infile)
 
     first = True
     for line in infile.readlines():
         benchmark = Path(line).expanduser().name.split(".")[0]
-        json_dict = get_ordered_dict(line)
+        json_dict = get_ordered_dict(line, args.parser)
         pairs = flatten(json_dict)
         values = get_values(pairs)
         if first:
