@@ -49,9 +49,14 @@ parser.add_argument(
     "input_xml_dir",
     help="Path to a directory containing paN.xml files generated using `fapp -txml`",
 )
+parser.add_argument(
+    "--roi",
+    help="Region of interest (default: kernel)",
+    default="kernel",
+)
 args = parser.parse_args()
 
-fapp_xml = FappXml(args.input_xml_dir)
+fapp_xml = FappXml(args.input_xml_dir, args.roi)
 results = OrderedDict()
 
 ### TOP END ###
