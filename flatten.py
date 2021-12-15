@@ -39,12 +39,17 @@ def main():
     else:
         infile = sys.stdin
 
+    first = True
     for line in infile.readlines():
         benchmark = Path(line).expanduser().name.split(".")[0]
         json_dict = get_ordered_dict(line)
         pairs = flatten(json_dict)
         values = get_values(pairs)
-        print(benchmark, values)
+        if first:
+            first = False
+            keys = [pair[0] for pair in pairs]
+            print("\t".join(["Benchmark"] + keys))
+        print("\t".join([benchmark] + [str(v) for v in values]))
 
     if infile is not sys.stdin:
         infile.close()
