@@ -9,11 +9,6 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 
-def normalise(data, colnames, normalizer=""):
-    for col in colnames:
-        pass
-
-
 def get_numpy(derived_path: str, diffs_path: str) -> pd.DataFrame:
     selected_diffs_cols = [0, 2, 3, 4]
     last_removed_col = 8
@@ -35,7 +30,6 @@ def get_numpy(derived_path: str, diffs_path: str) -> pd.DataFrame:
     print("All remaining columns are numeric", all_numeric)
     X = cleaned.drop(columns=[y_key])
     y = cleaned[y_key]
-    normalise(X, [])
     return X, y
 
 
