@@ -45,8 +45,6 @@ def print_results(coefs, n=5):
         idx = len(coefs) - n + i
         p = coefs[idx]
         print(f"{p[1]:0.10f} : {p[0]}")
-    # print(f"Top: {coefs[:5]}")
-    # print(f"Bottom: {coefs[-5:]}")
 
 
 def main():
