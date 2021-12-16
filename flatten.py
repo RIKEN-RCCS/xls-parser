@@ -7,6 +7,8 @@ import sys
 from collections import OrderedDict
 from pathlib import Path
 
+from fapp_loader import FappXml
+
 
 def flatten(data: OrderedDict) -> list:
     results = []
@@ -22,16 +24,34 @@ def flatten(data: OrderedDict) -> list:
 
 def get_ordered_dict(xml_dir: str, parser: str) -> OrderedDict:
     script = Path(parser).expanduser()
-    cmd = ["python", script, xml_dir.strip()]
+    cmd = ["python", script, xml_dir]
     json_out = subprocess.run(cmd, stdout=subprocess.PIPE)
     result = json.loads(json_out.stdout, object_pairs_hook=OrderedDict)
     return result
 
 
-def get_values(pairs: list):
+def get_measurements(pairs: list):
     values = [pair[1] for pair in pairs]
     results = [s[0] if isinstance(s, list) and len(s) == 1 else s for s in values]
     return results
+
+
+def proc_all_files(infile, parser):
+    first = True
+    for line in infile.readlines():
+        line = line.strip()
+        benchmark = Path(line).expanduser().name.split(".")[0]
+        json_dict = get_ordered_dict(line, parser)
+        pairs = flatten(json_dict)
+        fapp_xml = FappXml(line)
+        raw_keys = list(fapp_xml.event_dict.keys())
+        raw_counters = [fapp_xml.get_event(k, 0) for k in raw_keys]
+        measurements = get_measurements(pairs)
+        if first:
+            first = False
+            keys = [pair[0] for pair in pairs] + raw_keys
+            print("\t".join(["Benchmark"] + keys))
+        print("\t".join([benchmark] + [str(v) for v in measurements + raw_counters]))
 
 
 def main():
@@ -49,17 +69,7 @@ def main():
     else:
         infile = open(args.infile)
 
-    first = True
-    for line in infile.readlines():
-        benchmark = Path(line).expanduser().name.split(".")[0]
-        json_dict = get_ordered_dict(line, args.parser)
-        pairs = flatten(json_dict)
-        values = get_values(pairs)
-        if first:
-            first = False
-            keys = [pair[0] for pair in pairs]
-            print("\t".join(["Benchmark"] + keys))
-        print("\t".join([benchmark] + [str(v) for v in values]))
+    proc_all_files(infile, args.parser)
 
     if infile is not sys.stdin:
         infile.close()
