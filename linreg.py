@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
 
-# TODO(vatai) print colum scores!!!
-
 import argparse
 
 import pandas as pd
+from pandas.api.types import is_numeric_dtype
 from sklearn.linear_model import LinearRegression
 
-RAW_COLS = [
+NORM_COLS = [
     "CNTVCT",
     "PMCCNTR",
     "0x80c0",
@@ -142,6 +141,7 @@ def get_numpy(derived_path: str, diffs_path: str) -> pd.DataFrame:
     selected_diffs_cols = [0, 2, 3, 4]
     last_removed_col = 8
     y_key = "Difference"
+    denom_key = "Statistics::Execution time (s)"
 
     derived = pd.read_csv(derived_path, sep="\t")
     diffs = pd.read_csv(diffs_path, sep="\t")
@@ -153,32 +153,28 @@ def get_numpy(derived_path: str, diffs_path: str) -> pd.DataFrame:
     cleaned = merged.iloc[:, last_removed_col:]
     print(f"Remaining cols: {len(cleaned.columns)}")
 
-    all_numeric = all(
-        [pd.api.types.is_numeric_dtype(cleaned[c]) for c in cleaned.columns]
-    )
+    all_numeric = all([is_numeric_dtype(cleaned[c]) for c in cleaned.columns])
     print("All remaining columns are numeric", all_numeric)
-    X = cleaned.drop(columns=[y_key])
-    y = cleaned[y_key]
-    for col in cleaned.columns:
-        print(col)
-    print(cleaned["A64fx time"] / cleaned["Statistics::Execution time (s)"])
 
-    denom = cleaned["Difference"]
-    return X, y
+    for col in NORM_COLS:  # normalisation
+        cleaned[col] /= cleaned[denom_key]
+        cleaned = cleaned.rename(columns={col: f"{col} (norm)"})
+    return cleaned.drop(columns=[y_key]), cleaned[y_key]
 
 
 def print_results(coefs, n=5):
+    fmt_str = "{:0.10} : {}"
     print("Top:")
     for i in range(n):
         p = coefs[i]
-        print(f"{p[1]:0.10f} : {p[0]}")
+        print(fmt_str.format(p[1], p[0]))
 
     print()
     print("Bottom:")
     for i in range(n):
         idx = len(coefs) - n + i
         p = coefs[idx]
-        print(f"{p[1]:0.10f} : {p[0]}")
+        print(fmt_str.format(p[1], p[0]))
 
 
 def main():
@@ -196,13 +192,12 @@ def main():
     args = parser.parse_args()
 
     X, y = get_numpy(args.derived_path, args.diffs_path)
+    print(X)
     reg = LinearRegression().fit(X, y)
     print(f"Score: {reg.score(X, y)}")
     coefs = sorted(zip(X.columns, reg.coef_), key=lambda t: t[1], reverse=True)
     print_results(coefs)
     print(reg.intercept_)
-    # for c in merged.columns:
-    #     print(merged[c].dtype, c)
 
 
 main()
