@@ -150,6 +150,11 @@ def get_numpy(derived_path: str, diffs_path: str) -> pd.DataFrame:
     removed_cols = merged.iloc[:, :last_removed_col].columns
     print(f"Removed cols: {[c for c in removed_cols]}")
 
+    print(
+        merged[["Benchmark", "Statistics::Execution time (s)", "A64fx time"]].assign(
+            quotient=merged["Statistics::Execution time (s)"] / merged["A64fx time"]
+        )
+    )
     cleaned = merged.iloc[:, last_removed_col:]
     print(f"Remaining cols: {len(cleaned.columns)}")
 
@@ -192,7 +197,6 @@ def main():
     args = parser.parse_args()
 
     X, y = get_numpy(args.derived_path, args.diffs_path)
-    print(X)
     reg = LinearRegression().fit(X, y)
     print(f"Score: {reg.score(X, y)}")
     coefs = sorted(zip(X.columns, reg.coef_), key=lambda t: t[1], reverse=True)
