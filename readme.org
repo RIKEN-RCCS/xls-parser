@@ -48,4 +48,6 @@ results into JSON format.
   measurements to compare different runs/applications, or one is
   attempting to improve an application based on the measurements.
   Using the Excel approach for the first situation is tedious and
-  error-prone, and for the second situation extremely frustrating.
+  error-prone, and for the second situation extremely frustrating.  It
+  is also common for the programmers to be using Linux (and not
+  Windows), which makes running Excel a further burden.
