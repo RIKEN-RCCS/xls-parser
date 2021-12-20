@@ -40,3 +40,11 @@ JSON format.
 * Output
   The output is printed to ~stdout~ in JSON format as (nested) dictionaries.
 
+* Motivation
+  It is inconvenient to download 17 files (plus the XLS) to a local PC
+  to get the desired measurements, especially since profiling is
+  rarely done for a single application.  Usually, one does multiple
+  measurements to compare different runs/applications, or one is
+  attempting to improve an application based on the measurements.
+  Using the Excel approach for the first situation is tedious and
+  error-prone, and for the second situation extremely frustrating.
