@@ -38,6 +38,7 @@ def get_measurements(pairs: list):
 
 def proc_all_files(infile, parser):
     first = True
+    sep = "\t"
     for line in infile.readlines():
         line = line.strip()
         benchmark = Path(line).expanduser().name.split(".")[0]
@@ -50,8 +51,9 @@ def proc_all_files(infile, parser):
         if first:
             first = False
             keys = [pair[0] for pair in pairs] + raw_keys
-            print("\t".join(["Benchmark"] + keys))
-        print("\t".join([benchmark] + [str(v) for v in measurements + raw_counters]))
+            print(sep.join(["Benchmark"] + keys))
+        values = measurements + raw_counters
+        print(sep.join([benchmark] + [str(v) for v in values]))
 
 
 def main():
