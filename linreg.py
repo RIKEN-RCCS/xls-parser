@@ -137,6 +137,14 @@ NORM_COLS = [
 ]
 
 
+def get_raw_counter_keys(columns):
+    results = ["CNTVCT", "PMCCNTR"]
+    for col in columns:
+        if col.startswith("0x"):
+            results.append(col)
+    return results
+
+
 def get_numpy(derived_path: str, diffs_path: str) -> pd.DataFrame:
     last_removed_col = 8
     y_key = "Difference"
@@ -157,9 +165,9 @@ def get_numpy(derived_path: str, diffs_path: str) -> pd.DataFrame:
     print(f"Remaining cols: {len(cleaned.columns)}")
 
     all_numeric = all([is_numeric_dtype(cleaned[c]) for c in cleaned.columns])
-    print("All remaining columns are numeric", all_numeric)
+    assert all_numeric, "Some of the remaining columns are not numeric"
 
-    for col in NORM_COLS:  # normalisation
+    for col in get_raw_counter_keys(cleaned.columns):  # normalisation
         cleaned[col] /= cleaned[denom_key]
         cleaned = cleaned.rename(columns={col: f"{col} (norm)"})
     return cleaned.drop(columns=[y_key]), cleaned[y_key]
@@ -180,7 +188,7 @@ def print_results(coefs, n=5):
         print(fmt_str.format(p[1], p[0]))
 
 
-def main():
+def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--derived_path",
@@ -192,9 +200,14 @@ def main():
         help="TSV from google sheets",
         default="~/Sync/polybench.tsv",
     )
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+def main():
+    args = get_args()
     X, y = get_numpy(args.derived_path, args.diffs_path)
+    for col in X.columns:
+        print(col)
     reg = LinearRegression().fit(X, y)
     print(f"Score: {reg.score(X, y)}")
     coefs = sorted(zip(X.columns, reg.coef_), key=lambda t: t[1], reverse=True)
