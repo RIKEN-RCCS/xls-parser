@@ -138,14 +138,12 @@ NORM_COLS = [
 
 
 def get_numpy(derived_path: str, diffs_path: str) -> pd.DataFrame:
-    selected_diffs_cols = [0, 2, 3, 4]
     last_removed_col = 8
     y_key = "Difference"
     denom_key = "Statistics::Execution time (s)"
 
     derived = pd.read_csv(derived_path, sep="\t")
     diffs = pd.read_csv(diffs_path, sep="\t")
-    diffs = diffs.iloc[:, selected_diffs_cols]
     merged = pd.merge(derived, diffs, on="Benchmark")
     removed_cols = merged.iloc[:, :last_removed_col].columns
     print(f"Removed cols: {[c for c in removed_cols]}")
