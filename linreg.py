@@ -31,7 +31,7 @@ def get_raw_counter_keys(columns):
     return results
 
 
-def get_numbers(
+def get_data(
     derived_path: str,
     diffs_path: str,
     verbose: bool = False,
@@ -50,6 +50,7 @@ def get_numbers(
         selected_cols = merged[["Benchmark", fapp_time_col, chip_time_col]]
         quotient_col = merged[fapp_time_col] / merged[chip_time_col]
         print(selected_cols.assign(quotient=quotient_col))
+        print(f"quotient: min={min(quotient_col)}, max={max(quotient_col)}")
 
     numbers = merged.iloc[:, last_removed_col:]
     # print(f"Remaining cols: {len(numbers.columns)}")
@@ -92,13 +93,12 @@ def print_results(coefs, n=5):
 
 def main():
     args = get_args()
-    numbers = get_numbers(args.derived_path, args.diffs_path)
-    norm_cols = get_raw_counter_keys(numbers.columns)
-    print(norm_cols)
-    X, y = normalise(numbers, norm_cols)
+    data = get_data(args.derived_path, args.diffs_path, verbose=True)
+    norm_cols = get_raw_counter_keys(data.columns)
+    X, y = normalise(data, norm_cols)
 
-    for col in X.columns:
-        print(col)
+    # for col in X.columns:
+    #     print(col)
 
     reg = LinearRegression().fit(X, y)
     print(f"Score: {reg.score(X, y)}")
