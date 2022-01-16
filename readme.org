@@ -19,6 +19,18 @@ results into JSON format.
 ** Requirements:
    ~openpyxl~, (e.g. do ~pip install openpyxl~).
 
+** Known issues:
+   Currently, the ~openpyxl~ package gives the following 3 warnings when reading the XLSM file.  *These can be ignored.*
+   #+begin_example
+     /usr/lib/python3.10/site-packages/openpyxl/worksheet/_reader.py:312: UserWarning: Unknown extension is not supported and will be removed
+       warn(msg)
+     /usr/lib/python3.10/site-packages/openpyxl/worksheet/_reader.py:296: UserWarning: Failed to load a conditional formatting rule. It will be discarded. Cause: expected <class 'float'>
+       warn(msg)
+     /usr/lib/python3.10/site-packages/openpyxl/worksheet/_reader.py:312: UserWarning: Conditional Formatting extension is not supported and will be removed
+       warn(msg)
+
+   #+end_example
+
 * Using ~xls_parse.out.py~
   #+begin_src shell
     # XMLPATH: the directory with paN.xml files
