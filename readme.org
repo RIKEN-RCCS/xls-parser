@@ -45,10 +45,10 @@ results into JSON format.
    Note that unlike Excel which reads CSV file, ~xls_parse.out.py~
    reads XLS files.
 
-   Using the `--roi` switch the region of interest can be
+   Using the ~--roi~ switch the region of interest can be
    specified. This is the string which you need to select when loading
    the data with Excel (which is the string specified in when calling
-   `fapp_start()`).
+   ~fapp_start()~).
 
 * Output
   The output is printed to ~stdout~ in JSON format as (nested) dictionaries.
