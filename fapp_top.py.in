@@ -2,11 +2,12 @@
 import argparse
 import json
 from collections import OrderedDict
+from pprint import pprint
 
 # from fapp_loader import FappXml
 
 
-def add_path(path: list[str], key: str, value, results: OrderedDict):
+def add_path(path, key, value, results):
     cur_dict = results
     for p in path:
         if p not in cur_dict:
@@ -15,15 +16,15 @@ def add_path(path: list[str], key: str, value, results: OrderedDict):
     cur_dict[key] = value
 
 
-def xls_nonempty(ops: list):
+def xls_nonempty(ops):
     return [e for e in ops if e != ""]
 
 
-def xls_sum(ops: list):
+def xls_sum(ops):
     return sum(map(lambda t: float(t) if t != "" else 0, ops))
 
 
-def vba_guard_limit_lower(data, flag: float, lower_limit: float = 1):
+def vba_guard_limit_lower(data, flag, lower_limit=1):
     try:
         ddata = float(data)
     except Exception():
@@ -34,7 +35,7 @@ def vba_guard_limit_lower(data, flag: float, lower_limit: float = 1):
     return ddata
 
 
-def vba_guard_limit_upper(data, flag: float, upper_limit: float = 1):
+def vba_guard_limit_upper(data, flag, upper_limit=1):
     try:
         ddata = float(data)
     except Exception():
