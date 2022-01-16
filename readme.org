@@ -20,7 +20,8 @@ results into JSON format.
    ~openpyxl~, (e.g. do ~pip install openpyxl~).
 
 ** Known issues:
-   Currently, the ~openpyxl~ package gives the following 3 warnings when reading the XLSM file.  *These can be ignored.*
+   Currently, the ~openpyxl~ package gives the following 3 warnings
+   when reading the XLSM file.  *These can be ignored.*
    #+begin_example
      /usr/lib/python3.10/site-packages/openpyxl/worksheet/_reader.py:312: UserWarning: Unknown extension is not supported and will be removed
        warn(msg)
