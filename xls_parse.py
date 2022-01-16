@@ -58,7 +58,7 @@ INFIX_OP_MAP = {
 }
 
 
-def is_event_cell(cell_id: str) -> bool:
+def is_event_cell(cell_id):
     cell = cell_id_to_obj(cell_id)
     col = cell.col_idx
     row = cell.row
@@ -71,7 +71,7 @@ def is_event_cell(cell_id: str) -> bool:
     return result
 
 
-def full_cell_id(cell_id: str) -> str:
+def full_cell_id(cell_id):
     dbgp(f"> full_cell_id({cell_id})")
     prefix = WORKSHEET_STACK[-1] if WORKSHEET_STACK else "report"
     if cell_id in WORKBOOK.defined_names:
@@ -82,11 +82,11 @@ def full_cell_id(cell_id: str) -> str:
     return cell_id
 
 
-def cell_obj_to_id(cell: Cell) -> str:
+def cell_obj_to_id(cell):
     return cell.parent.title + "!" + cell.coordinate
 
 
-def cell_id_to_varname(cell_id: str) -> str:
+def cell_id_to_varname(cell_id):
     dbgp(f"> cell_id_to_varname({cell_id})")
     if ":" in cell_id:
         cells = cell_id_to_obj(cell_id)
@@ -100,7 +100,7 @@ def cell_id_to_varname(cell_id: str) -> str:
     return result
 
 
-def cell_id_to_obj(cell_id: str) -> Cell:
+def cell_id_to_obj(cell_id):
     dbgp(f"> cell_id_to_obj({cell_id})")
     cell_id = full_cell_id(cell_id)
     ws, cell = cell_id.split("!")
@@ -111,31 +111,31 @@ def cell_id_to_obj(cell_id: str) -> Cell:
     return cell
 
 
-def unknown_type_exception(token: Token) -> None:
+def unknown_type_exception(token):
     msg = f"ERROR: Unknown type {token.type}"
     raise Exception(msg)
 
 
-def unknown_subtype_exception(token: Token) -> None:
+def unknown_subtype_exception(token):
     msg = f"ERROR: Unknown subtype {token.subtype} "
     msg += f"(of token type {token.type})"
     raise Exception(msg)
 
 
-def unknown_func_exception(token: Token) -> None:
+def unknown_func_exception(token):
     msg = f"ERROR: Unknown FUNC {token.value}"
     raise Exception(msg)
 
 
-def assert_sep_comma(token: Token) -> None:
+def assert_sep_comma(token):
     assert token.type == Token.SEP and token.value == ","
 
 
-def assert_func_close(token: Token) -> None:
+def assert_func_close(token):
     assert token.type == Token.FUNC and token.subtype == Token.CLOSE
 
 
-def python_cmd_to_read_xml(cell_id: str) -> Optional[str]:
+def python_cmd_to_read_xml(cell_id):
     dbgp(f"> python_cmd_to_read_xml({cell_id})")
     result = None
     cell_id = cell_id.replace("$", "")
@@ -166,7 +166,7 @@ def python_cmd_to_read_xml(cell_id: str) -> Optional[str]:
     return result
 
 
-def parse_operand(token: Token) -> str:
+def parse_operand(token):
     dbgp(f"> parse_operand({token})")
     if token.subtype == Token.RANGE:
         cell_id = full_cell_id(token.value)
@@ -186,7 +186,7 @@ def parse_operand(token: Token) -> str:
     return result
 
 
-def parse_if(tokens: list[Token], cur: int) -> (str, int):
+def parse_if(tokens, cur):
     cond, cur = parse_tokens(tokens, cur + 1)
     assert_sep_comma(tokens[cur])
     true_val, cur = parse_tokens(tokens, cur + 1)
@@ -197,7 +197,7 @@ def parse_if(tokens: list[Token], cur: int) -> (str, int):
     return result, cur
 
 
-def parse_or(tokens: list[Token], cur: int) -> (str, int):
+def parse_or(tokens, cur):
     ops, cur = parse_tokens(tokens, cur + 1)
     while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
         tmp, cur = parse_tokens(tokens, cur + 1)
@@ -208,21 +208,21 @@ def parse_or(tokens: list[Token], cur: int) -> (str, int):
     return result, cur
 
 
-def parse_count(tokens: list[Token], cur: int) -> (str, int):
+def parse_count(tokens, cur):
     cells, cur = parse_tokens(tokens, cur + 1)
     assert_func_close(tokens[cur])
     result = f"sum(1 for e in [{cells}] if e !='')"
     return result, cur
 
 
-def parse_sum(tokens: list[Token], cur: int) -> (str, int):
+def parse_sum(tokens, cur):
     terms, cur = parse_tokens(tokens, cur + 1)
     assert_func_close(tokens[cur])
     result = f"(xls_sum([{terms}]))"
     return result, cur
 
 
-def parse_average(tokens: list[Token], cur: int) -> (str, int):
+def parse_average(tokens, cur):
     terms, cur = parse_tokens(tokens, cur + 1)
     while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
         tmp, cur = parse_tokens(tokens, cur + 1)
@@ -233,7 +233,7 @@ def parse_average(tokens: list[Token], cur: int) -> (str, int):
     return result, cur
 
 
-def parse_gl_lower(tokens: list[Token], cur: int) -> (str, int):
+def parse_gl_lower(tokens, cur):
     args, cur = parse_tokens(tokens, cur + 1)
     while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
         tmp, cur = parse_tokens(tokens, cur + 1)
@@ -244,7 +244,7 @@ def parse_gl_lower(tokens: list[Token], cur: int) -> (str, int):
     return result, cur
 
 
-def parse_gl_upper(tokens: list[Token], cur: int) -> (str, int):
+def parse_gl_upper(tokens, cur):
     args, cur = parse_tokens(tokens, cur + 1)
     while tokens[cur].type == Token.SEP and tokens[cur].value == ",":
         tmp, cur = parse_tokens(tokens, cur + 1)
@@ -255,7 +255,7 @@ def parse_gl_upper(tokens: list[Token], cur: int) -> (str, int):
     return result, cur
 
 
-def parse_func(tokens: list[Token], cur: int) -> (str, int):
+def parse_func(tokens, cur):
     dbgp(f"> parse_func({tokens} {cur} = {tokens[cur]})")
     token = tokens[cur]
     open_func_dict = {
@@ -278,7 +278,7 @@ def parse_func(tokens: list[Token], cur: int) -> (str, int):
     return result, cur
 
 
-def parse_infix_op(token: Token) -> str:
+def parse_infix_op(token):
     dbgp(f"> parse_infix_op({token})")
     op_name = token.value
     if token.value in INFIX_OP_MAP:
@@ -287,7 +287,7 @@ def parse_infix_op(token: Token) -> str:
     return op_name
 
 
-def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
+def parse_tokens(tokens, cur):
     dbgp(f"> parse_tokens({tokens}, {cur} = {tokens[cur]})")
     result = ""
     while cur < len(tokens):
@@ -315,7 +315,7 @@ def parse_tokens(tokens: list[Token], cur: int) -> (str, int):
     return result, cur
 
 
-def cell_to_inst(cell_id: str) -> None:
+def cell_to_inst(cell_id):
     dbgp(f"> cell_to_inst({cell_id})")
     cell_id = full_cell_id(cell_id)
     cell = cell_id_to_obj(cell_id)
@@ -336,12 +336,12 @@ def cell_to_inst(cell_id: str) -> None:
         dbgp(f"< cell_to_inst -> APPEND: {line}")
 
 
-def get_label(cell_id: str) -> str:
+def get_label(cell_id):
     cell = WORKBOOK_DATA["report"][cell_id]
     return cell.value
 
 
-def create_program(output: str) -> str:
+def create_program(output):
     result = []
     with open("fapp_loader.py") as loader:
         result += loader.readlines()
@@ -360,18 +360,18 @@ def create_program(output: str) -> str:
     return result
 
 
-def record_entry(prefix: list[str], key: str, value: str) -> None:
+def record_entry(prefix, key, value):
     LINES.append(
         f"add_path({[get_label(e) for e in prefix]}, '{key}', {value}, results)"
     )
 
 
-def add_key_single_value_pair(prefix: list[str], key: str, value: str) -> None:
+def add_key_single_value_pair(prefix, key, value):
     cell_to_inst(value)
     record_entry(prefix, get_label(key), cell_id_to_varname(value))
 
 
-def add_column_of_12_1(prefix: list[str], key: str, first: str, num_rows: int = 12):
+def add_column_of_12_1(prefix, key, first, num_rows=12):
     first_cell = cell_id_to_obj(first)
     row = first_cell.row
     col = first_cell.col_idx - 1
@@ -395,7 +395,7 @@ def add_column_of_12_1(prefix: list[str], key: str, first: str, num_rows: int = 
         pass
 
 
-def _col2num(col: str, base: int = 26) -> int:
+def _col2num(col, base=26):
     ords = list(map(lambda t: ord(t) - ord("A"), col))
     result = ords[0]
     if len(col) == 2:
@@ -403,7 +403,7 @@ def _col2num(col: str, base: int = 26) -> int:
     return result
 
 
-def _num2col(num: int, base: int = 26) -> str:
+def _num2col(num, base=26):
     q, r = divmod(num, base)
     result = chr(r + ord("A"))
     if q:
@@ -411,7 +411,7 @@ def _num2col(num: int, base: int = 26) -> str:
     return result
 
 
-def col_range(begin_col: str, end_col: str):
+def col_range(begin_col, end_col):
     assert len(begin_col) <= 2
     assert len(end_col) <= 2
 
@@ -420,20 +420,14 @@ def col_range(begin_col: str, end_col: str):
     return [_num2col(num) for num in range(begin_num, end_num + 1)]
 
 
-def add_table(
-    prefix: list[str],
-    begin_col: str,
-    end_col: str,
-    head_row: int,
-    first_row: int,
-) -> None:
+def add_table(prefix, begin_col, end_col, head_row, first_row):
     for col in col_range(begin_col, end_col):
         head_cell = col + str(head_row)
         first_cell = col + str(first_row)
         add_column_of_12_1(prefix, head_cell, first_cell)
 
 
-def add_tables() -> None:
+def add_tables():
     # TOP
     add_key_single_value_pair([], "A3", "C3")
     add_key_single_value_pair([], "A4", "C4")
