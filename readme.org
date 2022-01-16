@@ -20,23 +20,35 @@ results into JSON format.
    ~openpyxl~, (e.g. do ~pip install openpyxl~).
 
 * Using ~xls_parse.out.py~
+  #+begin_src shell
+    # XMLPATH: the directory with paN.xml files
+    # KERNEL: name of the region of interest (ROI)
+    python xls_parse.out.py $XMLPATH [--roi=$KERNEL]
+  #+end_src
+
   The generated ~xls_parse.out.py~ can be used to print (in JSON
   format) all the derived counters calculated in the Excel file
   (without the need for the Excel).
 
-  The ~xls_parse.out.py~ has a single input: the path to a directory
-  with the ~paX.xml~ files (where ~X=1, ..., 17~) generated using the
-  ~fapp~ utility:
+** Parameters
+   The ~xls_parse.out.py~ has a one mandatory input: the path to a
+   directory with the ~paX.xml~ files (where ~X=1, ..., 17~) generated
+   using the ~fapp~ utility:
 
-  #+begin_src shell
-    for i in `seq 1 17`; do
-        fapp -C -d ./tmp${i} -Icpupa,nompi -Hevent=pa${i} ${BINARY}
-        fapp -A -d ./tmp${i} -Icpupa -txml -o ./pa${i}.xml
-    done
-  #+end_src
+   #+begin_src shell
+     for i in `seq 1 17`; do
+         fapp -C -d ./tmp${i} -Icpupa,nompi -Hevent=pa${i} ${BINARY}
+         fapp -A -d ./tmp${i} -Icpupa -txml -o ./pa${i}.xml
+     done
+   #+end_src
 
-  Note that unlike Excel which reads CSV file, ~xls_parse.out.py~
-  reads XLS files.
+   Note that unlike Excel which reads CSV file, ~xls_parse.out.py~
+   reads XLS files.
+
+   Using the `--roi` switch the region of interest can be
+   specified. This is the string which you need to select when loading
+   the data with Excel (which is the string specified in when calling
+   `fapp_start()`).
 
 * Output
   The output is printed to ~stdout~ in JSON format as (nested) dictionaries.
