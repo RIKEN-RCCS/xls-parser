@@ -11,10 +11,10 @@ results into JSON format.
   the ~xls_parse.out.py~ file.
 
 ** Important:
-   The ~cpu_pa_report.xlsm~ file must already be "loaded"
-   (i.e. you must use Excel once, and use the XLSM file with calculated
-   values, the ~xls_parse.py~ doesn't work with the "empty"
-   ~cpu_pa_report.xlsm~).
+   The ~cpu_pa_report.xlsm~ file must already be "loaded": i.e. you
+   must use Excel once, as described in the ~fapp~ manual to load data
+   from the CSV files and *save* it! The ~xls_parse.py~ doesn't work
+   with the "empty" ~cpu_pa_report.xlsm~ as provided by ~fapp~.
 
 ** Requirements:
    ~openpyxl~, (e.g. do ~pip install openpyxl~).
