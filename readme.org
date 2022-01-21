@@ -16,8 +16,7 @@ results into JSON format.
    from the CSV files and *save* it! The ~xls_parse.py~ doesn't work
    with the "empty" ~cpu_pa_report.xlsm~ as provided by ~fapp~.
 
-** Requirements:
-   ~openpyxl~, (e.g. do ~pip install openpyxl~).
+   Requirements: ~openpyxl~, (e.g. do ~pip install openpyxl~).
 
 ** Known issues:
    Currently, the ~openpyxl~ package gives the following 3 warnings
