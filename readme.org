@@ -68,9 +68,9 @@ results into JSON format.
   have fewer threads than the XLSM file which was used to generate
   it. For example: if the XLSM file was generated with CSV data
   obtained by profiling an *8 thread* application, the
-  ~xls_parser.out.py~ generated should be *good for single thread
-  applications*, but *might generate wrong results (or fail) for 12
-  thread applications*.
+  ~xls_parser.out.py~ generated should be *good for single thread*
+  applications, but *might generate wrong results (or fail) for 12
+  thread* applications.
 
 * Motivation
   It is inconvenient to download 17 files (plus the XLS) to a local PC
