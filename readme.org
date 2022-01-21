@@ -76,3 +76,19 @@ results into JSON format.
   error-prone, and for the second situation extremely frustrating.  It
   is also common for the programmers to be using Linux (and not
   Windows), which makes running Excel a further burden.
+
+* OSSing approval from Fujitsu
+
+The ‘xls-parser’ tool can be OSSed with following conditions:
+
+Distribution of the generated file (xls_parse.out.py) is not permitted.
+
+No support for the values derived from the tool.
+
+------------------
+
+‘xls-parser’ツールは、次の条件でOSSにすることができます。
+
+ツールからの生成されたファイル（xls_parse.out.py）の配布は許可されません。
+
+ツールから派生した値は保証されません。
