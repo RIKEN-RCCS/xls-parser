@@ -72,7 +72,7 @@ results into JSON format.
    Note that unlike Excel which reads CSV file, ~xls_parse.out.py~
    reads XLS files.
 
-   See ~xls_parser.py --help for *further parameters*.
+   See ~xls_parser.py --help~ for *further parameters*.
 
 ** Output
    The output is printed to ~stdout~ in JSON format as (nested) dictionaries.
