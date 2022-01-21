@@ -32,6 +32,20 @@ results into JSON format.
 
    #+end_example
 
+** Rebuilding ~xls_parser.out.py~
+   The ~xls_parser.out.py~ should not need to be rebuilt for runs which
+   have fewer threads than the XLSM file which was used to generate
+   it. For example: if the XLSM file was generated with CSV data
+   obtained by profiling an *8 thread* application, the
+   ~xls_parser.out.py~ generated should be *good for single thread*
+   applications, but *might generate wrong results (or fail) for 12
+   thread* applications.
+
+   Generally, reusing the same ~xls_parser.out.py~ to profile an
+   application with modifications to the code should yield correct
+   results.  *Any errors, incorrect results should be reported as an
+   [[https://github.com/RIKEN-RCCS/xls-parser/issues][issue]]*.
+
 * Using ~xls_parse.out.py~
   #+begin_src shell
     # XMLPATH: the directory with paN.xml files
@@ -60,17 +74,8 @@ results into JSON format.
 
    See ~xls_parser.py --help for *further parameters*.
 
-* Output
-  The output is printed to ~stdout~ in JSON format as (nested) dictionaries.
-
-* Rebuilding ~xls_parser.out.py~
-  The ~xls_parser.out.py~ should not need to be rebuilt for runs which
-  have fewer threads than the XLSM file which was used to generate
-  it. For example: if the XLSM file was generated with CSV data
-  obtained by profiling an *8 thread* application, the
-  ~xls_parser.out.py~ generated should be *good for single thread*
-  applications, but *might generate wrong results (or fail) for 12
-  thread* applications.
+** Output
+   The output is printed to ~stdout~ in JSON format as (nested) dictionaries.
 
 * Motivation
   It is inconvenient to download 17 files (plus the XLS) to a local PC
