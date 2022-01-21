@@ -10,13 +10,13 @@ results into JSON format.
   Run ~xls_parse.py /path/to/cpu_pa_report.xlsm~ which will generate
   the ~xls_parse.out.py~ file.
 
+  Requirements: ~openpyxl~, (e.g. do ~pip install openpyxl~).
+
 ** Important:
    The ~cpu_pa_report.xlsm~ file must already be "loaded": i.e. you
    must use Excel once, as described in the ~fapp~ manual to load data
    from the CSV files and *save* it! The ~xls_parse.py~ doesn't work
    with the "empty" ~cpu_pa_report.xlsm~ as provided by ~fapp~.
-
-   Requirements: ~openpyxl~, (e.g. do ~pip install openpyxl~).
 
 ** Known issues:
    Currently, the ~openpyxl~ package gives the following 3 warnings
