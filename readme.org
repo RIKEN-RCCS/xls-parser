@@ -77,7 +77,7 @@ results into JSON format.
   is also common for the programmers to be using Linux (and not
   Windows), which makes running Excel a further burden.
 
-* OSSing approval from Fujitsu
+* Fujitsu's approval to open-source xls_parser.py
 
 The ‘xls-parser’ tool can be OSSed with following conditions:
 
