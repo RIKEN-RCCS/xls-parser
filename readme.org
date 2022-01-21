@@ -50,7 +50,9 @@ results into JSON format.
   #+begin_src shell
     # XMLPATH: the directory with paN.xml files
     python xls_parse.out.py $XMLPATH
-    # see python xls_parse.out.py --help for more options
+    # see
+    python xls_parse.out.py --help
+    # for more options
   #+end_src
 
   The generated ~xls_parse.out.py~ can be used to print (in JSON
