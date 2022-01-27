@@ -46,6 +46,61 @@ def vba_guard_limit_upper(data, flag, upper_limit=1):
     return ddata
 
 
+def flatten(data: OrderedDict) -> list:
+    def concat_keys(key, pair):
+        return [f"{key.strip()}::{pair[0].strip()}", pair[1]]
+
+    results = []
+    for key, value in data.items():
+        if isinstance(value, OrderedDict):
+            results += [concat_keys(key, pair) for pair in flatten(value)]
+        else:
+            results.append([key, value])
+    return results
+
+
+def prn_json(results):
+    """JSON format"""
+    print(json.dumps(results))
+
+
+def prn_pprint(results):
+    """Pretty print results"""
+    pprint(results)
+
+
+def prn_keys(results):
+    """Print keys for flattened format (same order as --flat)"""
+    flat = flatten(results)
+    for pair in flat:
+        print(pair[0])
+
+
+def prn_flat(results):
+    """Print data for flattened format (same order as --keys)"""
+    flat = flatten(results)
+    for pair in flat:
+        print(pair[1])
+
+
+OUTPUT_FUNCS = {
+    "json": prn_json,
+    "pprint": prn_pprint,
+    "keys": prn_keys,
+    "flat": prn_flat,
+}
+
+
+def print_output(results, output):
+    if output not in OUTPUT_FUNCS.keys():
+        opts = ", ".join(OUTPUT_FUNCS.keys()) + ", list"
+        msg = f"'{output}' is invalid for --output options.\n"
+        msg += f"Acceptable options are: {opts}"
+        raise ValueError(msg)
+
+    OUTPUT_FUNCS[output](results)
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "input_xml_dir",
@@ -56,7 +111,18 @@ parser.add_argument(
     help="Region of interest (default: kernel)",
     default="kernel",
 )
+parser.add_argument(
+    "--output",
+    help="Different output formats (see --output=list for details)",
+    default="json",
+)
 args = parser.parse_args()
+
+if args.output == "list":
+    print("Possible --output options")
+    for key, fn in OUTPUT_FUNCS.items():
+        print("  {}: {}".format(key, fn.__doc__))
+    exit(0)
 
 fapp_xml = FappXml(args.input_xml_dir, args.roi)
 results = OrderedDict()
