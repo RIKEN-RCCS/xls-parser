@@ -4,10 +4,12 @@ from pathlib import Path
 
 
 class FappXml:
-    def __init__(self, path: str, region_name: str = "kernel"):
+    def __init__(self, path: str, region_name: str = "kernel", cmg: str = "0"):
         self.region_name = region_name
+        self.cmg = cmg
         self.fill_xmls(path)
         self.fill_event_dict()
+        self.fill_cmg_tids()
 
     def fill_xmls(self, path: str) -> None:
         pa_dir = Path(path).expanduser()
@@ -27,6 +29,13 @@ class FappXml:
                 event_name = event.get("name")
                 self.event_dict[event_name].append(idx)
 
+    def fill_cmg_tids(self):
+        query = "./environment/spawn/process/thread"
+        self.cmg_tids = []
+        for thread in self.xmls[0].findall(query):
+            if thread.find("cmg").attrib["id"] == self.cmg:
+                self.cmg_tids.append(thread.attrib["id"])
+
     def get_event(self, event_name, thread_id):
         assert 0 <= thread_id and thread_id < 12, "Wrong thread id"
         result = ""
@@ -38,9 +47,10 @@ class FappXml:
                 result = "FAPP-cpupa"
             return result
         else:
+            tid = self.cmg_tids[thread_id]
             idx = self.event_dict[event_name][0]
             query = f"./information/region[@name='{self.region_name}']"
-            query += f"/spawn/process/thread[@id='{thread_id}']"
+            query += f"/spawn/process/thread[@id='{tid}']"
             query += f"/cpupa/event[@name='{event_name}']"
             element = self.xmls[idx].find(query)
             if element is not None:
