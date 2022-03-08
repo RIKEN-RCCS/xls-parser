@@ -109,9 +109,9 @@ No support for the values derived from the tool.
     @software{vatai2022xlsparser,
       author = {Vatai, Emil},
       month = {3},
-      year = {2022}
+      year = {2022},
       title = {{XLS parser}},
       url = {https://github.com/RIKEN-RCCS/xls-parser},
-      version = {v1.0.1},
+      version = {v1.0.2}
     }
   #+end_src
