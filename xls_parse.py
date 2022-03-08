@@ -432,7 +432,7 @@ def add_tables():
     add_key_single_value_pair([], "A3", "C3")
     add_key_single_value_pair([], "A4", "C4")
     add_key_single_value_pair([], "H3", "J3")
-    add_key_single_value_pair([], "H4", "J4")
+    # add_key_single_value_pair([], "H4", "J4")
     add_key_single_value_pair([], "H5", "J5")
     add_key_single_value_pair([], "O3", "Q3")
     add_key_single_value_pair([], "O4", "Q4")

@@ -112,6 +112,12 @@ parser.add_argument(
     default="kernel",
 )
 parser.add_argument(
+    "--cmg",
+    help="CMG id (default: 0)",
+    type=int,
+    default=0,
+)
+parser.add_argument(
     "--output",
     help="Different output formats (see --output=list for details)",
     default="json",
@@ -124,7 +130,8 @@ if args.output == "list":
         print("  {}: {}".format(key, fn.__doc__))
     exit(0)
 
-fapp_xml = FappXml(args.input_xml_dir, args.roi)
+fapp_xml = FappXml(args.input_xml_dir, args.roi, args.cmg)
 results = OrderedDict()
+results["CMG no."] = args.cmg
 
 ### TOP END ###
