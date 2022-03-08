@@ -102,3 +102,16 @@ No support for the values derived from the tool.
 ツールからの生成されたファイル（xls_parse.out.py）の配布は許可されません。
 
 ツールから派生した値は保証されません。
+
+* Citing this software
+  If you find the software useful, please cite it:
+  #+begin_src bibtex
+    @software{vatai2022xlsparser,
+      author = {Vatai, Emil},
+      month = {3},
+      year = {2022}
+      title = {{XLS parser}},
+      url = {https://github.com/RIKEN-RCCS/xls-parser},
+      version = {v1.0.1},
+    }
+  #+end_src
