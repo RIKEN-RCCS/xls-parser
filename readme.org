@@ -108,10 +108,10 @@ No support for the values derived from the tool.
   #+begin_src bibtex
     @software{vatai2022xlsparser,
       author = {Vatai, Emil},
-      month = {3},
+      month = {March},
       year = {2022},
       title = {{XLS parser}},
-      url = {https://github.com/RIKEN-RCCS/xls-parser},
-      version = {v1.0.2}
+      howpublished = {\url{https://github.com/RIKEN-RCCS/xls-parser}},
+      version = {v1.0.3}
     }
   #+end_src
