@@ -508,6 +508,7 @@ def main():
 
     out_file = sys.argv[0].replace(".py", ".out.py")
     create_program(Path(out_file).expanduser())
+    print(f"Created {out_file}")
 
 
 main()
