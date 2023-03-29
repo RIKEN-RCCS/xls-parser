@@ -107,8 +107,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--roi",
-    help="Region of interest (default: kernel)",
-    default="kernel",
+    help="Region of interest (default: all)",
+    default="all",
 )
 parser.add_argument(
     "--cmg",
