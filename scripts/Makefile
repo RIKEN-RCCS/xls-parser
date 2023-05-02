@@ -1,3 +1,4 @@
 CC=fcc
-LDLIBS=-Nfjprof
+CFLAGS=-\#\#\#
+LDLIBS=-Nnofjprof
 LDFLAGS=-fopenmp

@@ -3,12 +3,14 @@
 #include <assert.h>
 
 int main() {
-  printf("Hello\n");
+  fapp_start("foo",1,0);
   #pragma omp parallel
   {
     int num_threads = omp_get_num_threads();
     int tid = omp_get_thread_num();
-    printf("thread %d/%d\n", tid, num_threads);
+    printf("thread %d/%d", tid, num_threads);
   }
+  fapp_stop("foo",1,0);
+  printf("\n");
   return 0;
 }
